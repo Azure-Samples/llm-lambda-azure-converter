@@ -1,3 +1,4 @@
 .conda
 .env
 notebook/temp/
+go.work.sum
