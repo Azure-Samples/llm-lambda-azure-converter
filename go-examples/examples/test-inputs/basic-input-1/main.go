@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/msft-latam-devsquad/lambda-to-azure-converter/examples/storage"
+	"github.com/msft-latam-devsquad/lambda-to-azure-converter/go-examples/examples/storage"
 )
 
 type SaveRequest struct {
