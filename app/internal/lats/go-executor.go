@@ -163,7 +163,7 @@ func cleanUp(tempDir string) {
 	os.RemoveAll(tempDir)
 }
 
-func (e goExecutor) Execute(code string, tests []string) (*models.ExecutionResult, error) {
+func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResult, error) {
 	tempDir, err := createTempProject()
 	if err != nil {
 		return nil, err
@@ -244,7 +244,7 @@ func (e goExecutor) Execute(code string, tests []string) (*models.ExecutionResul
 	}, nil
 }
 
-func (e goExecutor) Evaluate(code string, tests []string) bool {
+func (e *goExecutor) Evaluate(code string, tests []string) bool {
 	result, err := e.Execute(code, tests)
 	if err != nil {
 		return false

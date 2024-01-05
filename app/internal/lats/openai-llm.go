@@ -6,13 +6,15 @@ import (
 	"github.com/tmc/langchaingo/llms"
 	"github.com/tmc/langchaingo/llms/openai"
 	"github.com/tmc/langchaingo/prompts"
+	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
+
 )
 
 type openAIChat struct {
 	config LatsConfig
 }
 
-func NewOpenAIChat(config LatsConfig) *openAIChat {
+func NewOpenAIChat(config LatsConfig) models.LLM {
 	return &openAIChat{
 		config: config,
 	}

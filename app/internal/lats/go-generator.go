@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
 )
 
 const (
@@ -39,4 +41,26 @@ func readTxt(filename string) string {
 		return ""
 	}
 	return string(bytes)
+}
+
+type goGenerator struct {
+	llm models.LLM
+}
+
+func NewGoGenerator(llm models.LLM) models.Generator {
+	return &goGenerator{
+		llm: llm,
+	}
+}
+
+func (g *goGenerator) GenerateCode(code string) (string, error){
+	return "", nil
+}
+
+func (g *goGenerator) GenerateTests(code string) ([]string, error){
+	return nil, nil
+}
+
+func (g *goGenerator) GenerateReflection(code string) (string, error){
+	return "", nil
 }
