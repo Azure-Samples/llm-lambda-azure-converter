@@ -10,6 +10,7 @@ const (
 	AzureOpenAIApiKeyConfig     = "azure.openai.apikey"
 	AzureOpenAIEndpointConfig   = "azure.openai.endpoint"
 	AzureOpenAIApiVersionConfig = "azure.openai.apiversion"
+	AzureOpenAIDeploymentName   = "azure.openai.deployment"
 )
 
 func init() {
@@ -23,15 +24,17 @@ func init() {
 }
 
 type LatsConfig struct {
-	AzureOpenAIApiKey     string
-	AzureOpenAIEndpoint   string
-	AzureOpenAIApiVersion string
+	AzureOpenAIApiKey         string
+	AzureOpenAIEndpoint       string
+	AzureOpenAIApiVersion     string
+	AzureOpenAIDeploymentName string
 }
 
 func NewLatsConfig(v viper.Viper) *LatsConfig {
 	return &LatsConfig{
-		AzureOpenAIApiKey:     v.GetString(AzureOpenAIApiKeyConfig),
-		AzureOpenAIEndpoint:   v.GetString(AzureOpenAIEndpointConfig),
-		AzureOpenAIApiVersion: v.GetString(AzureOpenAIApiVersionConfig),
+		AzureOpenAIApiKey:         v.GetString(AzureOpenAIApiKeyConfig),
+		AzureOpenAIEndpoint:       v.GetString(AzureOpenAIEndpointConfig),
+		AzureOpenAIApiVersion:     v.GetString(AzureOpenAIApiVersionConfig),
+		AzureOpenAIDeploymentName: v.GetString(AzureOpenAIDeploymentName),
 	}
 }

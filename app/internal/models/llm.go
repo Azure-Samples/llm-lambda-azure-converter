@@ -1,9 +1,20 @@
 package models
 
-import (
-	"github.com/tmc/langchaingo/prompts"
+import "context"
+
+type MessageType string
+
+const (
+	SystemMessage    MessageType = "system"
+	UserMessage      MessageType = "user"
+	AssistantMessage MessageType = "assistant"
 )
 
+type ChatMessage struct {
+	Type    MessageType
+	Content string
+}
+
 type LLM interface {
-	Chat(messages []prompts.MessageFormatter, inputs map[string]any) (string, error)
+	Chat(ctx context.Context, messages []ChatMessage) (*string, error)
 }

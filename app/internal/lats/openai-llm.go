@@ -2,40 +2,55 @@ package lats
 
 import (
 	"context"
+	"errors"
 
-	"github.com/tmc/langchaingo/llms"
-	"github.com/tmc/langchaingo/llms/openai"
-	"github.com/tmc/langchaingo/prompts"
+	"github.com/Azure/azure-sdk-for-go/sdk/ai/azopenai"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
-
 )
 
 type openAIChat struct {
 	config LatsConfig
+	client *azopenai.Client
 }
 
-func NewOpenAIChat(config LatsConfig) models.LLM {
+func NewOpenAIChat(config LatsConfig) (models.LLM, error) {
+	keyCredential := azcore.NewKeyCredential(config.AzureOpenAIApiKey)
+	client, err := azopenai.NewClientWithKeyCredential(config.AzureOpenAIEndpoint, keyCredential, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &openAIChat{
 		config: config,
-	}
+		client: client,
+	}, nil
 }
 
-func (o *openAIChat) Chat(messages []prompts.MessageFormatter, inputs map[string]any) (string, error) {
-	prompt := prompts.NewChatPromptTemplate(messages)
-
-	fullPrompt, err := prompt.Format(inputs)
-	if err != nil {
-		return "", err
+func (o *openAIChat) Chat(ctx context.Context, messages []models.ChatMessage) (*string, error) {
+	chatMessages := make([]azopenai.ChatRequestMessageClassification, 0)
+	for _, message := range messages {
+		switch message.Type {
+		case models.SystemMessage:
+			chatMessages = append(chatMessages, &azopenai.ChatRequestSystemMessage{Content: to.Ptr(message.Content)})
+		case models.UserMessage:
+			chatMessages = append(chatMessages, &azopenai.ChatRequestUserMessage{Content: azopenai.NewChatRequestUserMessageContent(message.Content)})
+		case models.AssistantMessage:
+			chatMessages = append(chatMessages, &azopenai.ChatRequestAssistantMessage{Content: to.Ptr(message.Content)})
+		}
 	}
 
-	llm, err := openai.New(
-		openai.WithBaseURL(o.config.AzureOpenAIEndpoint), 
-		openai.WithToken(o.config.AzureOpenAIApiKey),
-		openai.WithAPIVersion(o.config.AzureOpenAIApiVersion),
-	)
+	resp, err := o.client.GetChatCompletions(ctx, azopenai.ChatCompletionsOptions{
+		Messages:       chatMessages,
+		DeploymentName: &o.config.AzureOpenAIDeploymentName,
+	}, nil)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+	if len(resp.Choices) == 0 {
+		return nil, errors.New("no response from OpenAI")
 	}
 
-	return llm.Call(context.Background(), fullPrompt, llms.WithTemperature(0))
+	return resp.Choices[0].Message.Content, nil
 }
