@@ -48,8 +48,8 @@ func Test_goExecutor_Execute(t *testing.T) {
 			},
 			want: &models.ExecutionResult{
 				IsPassing: true,
-				Feedback: "Tested passed:\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\nTested failed:\n",
-				State: []bool{true, true, true},
+				Feedback:  "Tested passed:\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\nTested failed:\n",
+				State:     []bool{true, true, true},
 			},
 			wantErr: false,
 		},
