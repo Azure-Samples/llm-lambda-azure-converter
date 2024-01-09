@@ -21,29 +21,23 @@ func init() {
 	failedTestRegex = regexp.MustCompile(failedTestPattern)
 }
 
-type goExecutor struct{
+type goExecutor struct {
 }
 
 func NewGoExecutor() models.Executor {
 	return &goExecutor{}
 }
 
-func createTempProject() (string, error) {
-	rand := uuid.New().String()
-
-	tempPath := os.TempDir()
-	tempDir := filepath.Join(tempPath, fmt.Sprintf("go-lats-%s", rand))
-	os.Mkdir(tempDir, 0755)
-
-	cmd := exec.Command(fmt.Sprintf("go mod init go-lats-%s", rand))
-	cmd.Dir = tempDir
+func createTempProject(targetDir string) error {
+	cmd := exec.Command("go", "mod", "init", "go-lats")
+	cmd.Dir = targetDir
 	_, err := cmd.Output()
 
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return tempDir, nil
+	return nil
 }
 
 func writeToFile(path, code string) error {
@@ -65,15 +59,15 @@ func writeToFile(path, code string) error {
 }
 
 func formatFile(path string) error {
-	cmd := exec.Command(fmt.Sprintf("go fmt %s", path))
-	cmd.Dir = filepath.Base(path)
+	cmd := exec.Command("go", "fmt", path)
+	cmd.Dir = filepath.Dir(path)
 	_, err := cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	cmd = exec.Command(fmt.Sprintf("goimports -w %s", path))
-	cmd.Dir = filepath.Base(path)
+	cmd = exec.Command("goimports", "-w", path)
+	cmd.Dir = filepath.Dir(path)
 	_, err = cmd.Output()
 	if err != nil {
 		return err
@@ -83,9 +77,16 @@ func formatFile(path string) error {
 }
 
 func downloadImports(path string) error {
-	cmd := exec.Command("go get -d ./... && go mod tidy")
-	cmd.Dir = filepath.Base(path)
+	cmd := exec.Command("go", "get", "-d", "./...")
+	cmd.Dir = path
 	_, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = path
+	_, err = cmd.Output()
 	if err != nil {
 		return err
 	}
@@ -94,8 +95,8 @@ func downloadImports(path string) error {
 }
 
 func buildProject(path string) ([]string, error) {
-	cmd := exec.Command("go build ./...")
-	cmd.Dir = filepath.Base(path)
+	cmd := exec.Command("go", "build", "./...")
+	cmd.Dir = path
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -106,7 +107,7 @@ func buildProject(path string) ([]string, error) {
 }
 
 func grabCompileErrs(output string) []string {
-	objs := make([]string, 0)
+	compileErrors := make([]string, 0)
 	compileErr := ""
 	for _, line := range strings.Split(output, "\n") {
 		if line == "" {
@@ -117,7 +118,7 @@ func grabCompileErrs(output string) []string {
 		}
 		if strings.HasPrefix(line, ".\\lats.go") {
 			if compileErr != "" {
-				objs = append(objs, compileErr)
+				compileErrors = append(compileErrors, compileErr)
 			}
 			compileErr = strings.Trim(line, "") + "\n"
 		}
@@ -127,14 +128,14 @@ func grabCompileErrs(output string) []string {
 	}
 
 	if compileErr != "" {
-		objs = append(objs, compileErr)
+		compileErrors = append(compileErrors, compileErr)
 	}
-	return objs
+	return compileErrors
 }
 
 func runTests(path string) ([]string, error) {
-	cmd := exec.Command("go test ./...")
-	cmd.Dir = filepath.Base(path)
+	cmd := exec.Command("go", "test", "./...")
+	cmd.Dir = path
 	output, err := cmd.Output()
 	if err != nil {
 		compileErrors := grabCompileErrs(err.Error())
@@ -164,7 +165,12 @@ func cleanUp(tempDir string) {
 }
 
 func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResult, error) {
-	tempDir, err := createTempProject()
+	rand := uuid.New().String()
+	tempPath := os.TempDir()
+	tempDir := filepath.Join(tempPath, fmt.Sprintf("go-lats-%s", rand))
+	os.Mkdir(tempDir, 0755)
+
+	err := createTempProject(tempDir)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +208,7 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 	isPassing := true
 	passedFeedback := "Tested passed:\n"
 	failedFeedback := "Tested failed:\n"
-	state := make([]bool, len(tests))
+	state := make([]bool, 0)
 
 	for _, test := range tests {
 		testPath := filepath.Join(tempDir, "lats_test.go")
@@ -250,5 +256,5 @@ func (e *goExecutor) Evaluate(code string, tests []string) bool {
 		return false
 	}
 
-	return result.IsPassing	
+	return result.IsPassing
 }
