@@ -2,3 +2,4 @@
 .env
 notebook/temp/
 go.work.sum
+app/config.yaml
