@@ -7,10 +7,12 @@ import (
 )
 
 const (
-	AzureOpenAIApiKeyConfig     = "azure.openai.apikey"
-	AzureOpenAIEndpointConfig   = "azure.openai.endpoint"
-	AzureOpenAIApiVersionConfig = "azure.openai.apiversion"
-	AzureOpenAIDeploymentName   = "azure.openai.deployment"
+	AzureOpenAIApiKeyConfig         = "azure.openai.apikey"
+	AzureOpenAIEndpointConfig       = "azure.openai.endpoint"
+	AzureOpenAIApiVersionConfig     = "azure.openai.apiversion"
+	AzureOpenAIDeploymentNameConfig = "azure.openai.deployment"
+	ConverterMaxIterationsConfig    = "converter.maxIterations"
+	ConverterMaxChildrenConfig      = "converter.maxChildren"
 )
 
 func init() {
@@ -28,6 +30,8 @@ type LatsConfig struct {
 	AzureOpenAIEndpoint       string
 	AzureOpenAIApiVersion     string
 	AzureOpenAIDeploymentName string
+	ConverterMaxIterations    int
+	ConverterMaxChildren      int
 }
 
 func NewLatsConfig(v viper.Viper) *LatsConfig {
@@ -35,6 +39,8 @@ func NewLatsConfig(v viper.Viper) *LatsConfig {
 		AzureOpenAIApiKey:         v.GetString(AzureOpenAIApiKeyConfig),
 		AzureOpenAIEndpoint:       v.GetString(AzureOpenAIEndpointConfig),
 		AzureOpenAIApiVersion:     v.GetString(AzureOpenAIApiVersionConfig),
-		AzureOpenAIDeploymentName: v.GetString(AzureOpenAIDeploymentName),
+		AzureOpenAIDeploymentName: v.GetString(AzureOpenAIDeploymentNameConfig),
+		ConverterMaxIterations:    v.GetInt(ConverterMaxIterationsConfig),
+		ConverterMaxChildren:      v.GetInt(ConverterMaxChildrenConfig),
 	}
 }

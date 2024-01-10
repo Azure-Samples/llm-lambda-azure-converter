@@ -15,6 +15,9 @@ azure:
     endpoint: "https://lats.openai.azure.com/"
     apiversion: "2023-12-01"
     deployment: "GPT-4"
+converter:
+  maxIterations: 5
+  maxChildren: 3
 `
 
 func TestNewLatsConfig(t *testing.T) {
@@ -41,6 +44,8 @@ func TestNewLatsConfig(t *testing.T) {
 				AzureOpenAIEndpoint: "https://lats.openai.azure.com/",
 				AzureOpenAIApiVersion: "2023-12-01",
 				AzureOpenAIDeploymentName: "GPT-4",
+				ConverterMaxIterations: 5,
+				ConverterMaxChildren: 3,
 			},
 		},
 	}

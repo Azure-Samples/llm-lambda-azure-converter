@@ -94,10 +94,10 @@ func (g *goGenerator) GenerateSelfReflection(ctx context.Context, code string, f
 	return g.llm.Chat(ctx, messages)
 }
 
-func (g *goGenerator) GenerateTests(ctx context.Context, funcSignature string) (*string, error) {
+func (g *goGenerator) GenerateTests(ctx context.Context, funcSignature string, code string) (*string, error) {
 	messages := []models.ChatMessage{
 		{Type: models.SystemMessage, Content: fmt.Sprintf("%s\n%s", goTestGenerationChatInstruction, g.goTestGenerationFewShot)},
-		{Type: models.UserMessage, Content: fmt.Sprintf("[func signature]:\n%s\n\n[unit tests]:", funcSignature)},
+		{Type: models.UserMessage, Content: fmt.Sprintf("[func signature]:\n%s\n\n[original code]:\n%s\n\n[unit tests]:", funcSignature, code)},
 	}
 
 	return g.llm.Chat(ctx, messages)

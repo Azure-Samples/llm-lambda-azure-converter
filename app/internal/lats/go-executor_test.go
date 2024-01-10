@@ -49,7 +49,7 @@ func Test_goExecutor_Execute(t *testing.T) {
 			want: &models.ExecutionResult{
 				IsPassing: true,
 				Feedback:  "Tested passed:\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\nTested failed:\n",
-				State:     []bool{true, true, true},
+				Score:     1,
 			},
 			wantErr: false,
 		},
@@ -63,56 +63,6 @@ func Test_goExecutor_Execute(t *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("goExecutor.Execute() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_goExecutor_Evaluate(t *testing.T) {
-	type args struct {
-		code  string
-		tests []string
-	}
-	tests := []struct {
-		name string
-		e    *goExecutor
-		args args
-		want bool
-	}{
-		{
-			name: "Successful execution",
-			e:    &goExecutor{},
-			args: args{
-				code: `
-				func salute(name string) string {
-					return fmt.Sprintf("Hello, %s!", name)
-				}
-				`,
-				tests: []string{
-					`
-					func TestSalute(t *testing.T) {
-						assert.Equal(t, "Hello, World!", salute("World"))
-					}
-					`,
-					`
-					func TestSalute(t *testing.T) {
-						assert.Equal(t, "Hello, Ana!", salute("Ana"))
-					}
-					`,
-					`
-					func TestSalute(t *testing.T) {
-						assert.NotEqual(t, "Hello, Ana!", salute("Ada"))
-					}
-					`,
-				},
-			},
-			want: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.e.Evaluate(tt.args.code, tt.args.tests); got != tt.want {
-				t.Errorf("goExecutor.Evaluate() = %v, want %v", got, tt.want)
 			}
 		})
 	}

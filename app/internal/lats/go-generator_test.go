@@ -296,6 +296,7 @@ func Test_goGenerator_GenerateSelfReflection(t *testing.T) {
 func Test_goGenerator_GenerateTests(t *testing.T) {
 	type args struct {
 		funcSignature string
+		code string
 	}
 	tests := []struct {
 		name    string
@@ -306,6 +307,7 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 			name: "Test GenerateTests",
 			args: args{
 				funcSignature: "func SaveHandler(c *gin.Context)",
+				code: code,
 			},
 			wantErr: false,
 		},
@@ -317,7 +319,7 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 				t.Errorf("error creating goGenerator: %v", err)
 				return
 			}
-			got, err := generator.GenerateTests(context.Background(), tt.args.funcSignature)
+			got, err := generator.GenerateTests(context.Background(), tt.args.funcSignature, tt.args.code)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("goGenerator.GenerateTests() error = %v, wantErr %v", err, tt.wantErr)
 				return

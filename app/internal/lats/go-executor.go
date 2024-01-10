@@ -12,6 +12,10 @@ import (
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
 )
 
+const (
+	compileWeight = 2
+)
+
 var (
 	failedTestRegex *regexp.Regexp
 )
@@ -201,14 +205,14 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 		return &models.ExecutionResult{
 			IsPassing: false,
 			Feedback:  strings.Join(compileErrors, "\n"),
-			State:     make([]bool, len(tests)),
+			Score:     calculateScore(false, false, len(tests), 0),
 		}, nil
 	}
 
 	isPassing := true
+	passingTests := 0
 	passedFeedback := "Tested passed:\n"
 	failedFeedback := "Tested failed:\n"
-	state := make([]bool, 0)
 
 	for _, test := range tests {
 		testPath := filepath.Join(tempDir, "lats_test.go")
@@ -235,26 +239,30 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 		if len(testErrors) > 0 {
 			isPassing = false
 			failedFeedback += fmt.Sprintf("%s\n%s\n", test, strings.Join(testErrors, "\n"))
-			state = append(state, false)
 		} else {
 			passedFeedback += fmt.Sprintf("%s\n", test)
-			state = append(state, true)
+			passingTests++
 		}
-
 	}
 
 	return &models.ExecutionResult{
 		IsPassing: isPassing,
 		Feedback:  fmt.Sprintf("%s\n%s", passedFeedback, failedFeedback),
-		State:     state,
+		Score:     calculateScore(isPassing, len(compileErrors) == 0, len(tests), passingTests),
 	}, nil
 }
 
-func (e *goExecutor) Evaluate(code string, tests []string) bool {
-	result, err := e.Execute(code, tests)
-	if err != nil {
-		return false
+func calculateScore(isPassing bool, compiles bool, totalTests int, passingTests int) float32 {
+	if isPassing {
+		return 1
 	}
 
-	return result.IsPassing
+	maxPoints := compileWeight + totalTests
+	compilePoints := 0
+	if compiles {
+		compilePoints = compileWeight
+	}
+	totalPoints := compilePoints + passingTests
+
+	return float32(maxPoints) / float32(totalPoints)
 }
