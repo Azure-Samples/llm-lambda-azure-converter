@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
 )
@@ -13,9 +14,11 @@ const (
 	goSimpleChatInstruction         = "You are an AI that only responds with Go code, NOT ENGLISH. You will be given a lambda function code. Rewrite the code without using lambda code and using a GinGonic server instead."
 	goReflectionChatInstruction     = "You are an AI Go assistant. You will be given your past function implementation, a series of unit tests, and a hint to change the implementation appropriately. Write your full implementation (restate the function signature)."
 	goSelfReflectionChatInstruction = "You are a Go programming assistant. You will be given a function implementation and a series of unit tests. Your goal is to write a few sentences to explain why your implementation is wrong as indicated by the tests. You will need this as a hint when you try again later. Only provide the few sentence description in your answer, not the implementation."
-	goTestGenerationChatInstruction = "You are a Go programming assistant, an AI coding assistant that can write unique, diverse, and intuitive unit tests for functions given the signature and an equivalent code."
+	goTestGenerationChatInstruction = "You are a Go programming assistant, an AI coding assistant that can write unique, diverse, and intuitive unit tests for functions. You will be given a lambda code, and asked to generate the tests for this code but changing the tested handler to use a different signature."
 	goSignatureChatInstruction      = "You are an AI Go assistant. You will be given a function implementation, and from it you will extract the handler function signature."
 	goCodeBlockInstruction          = "Use a Go code block to write your response. For example:\n```go\nfunc main() {\n    fmt.Println(\"Hello, World!\")\n}\n```"
+
+	testFunctionPattern = `(?s)(func Test\w+\(t \*testing.T\) \{.*?\n\})`
 )
 
 func readTxt(filename string) string {
@@ -39,9 +42,11 @@ type goGenerator struct {
 	goReflectionFewShotAdd  string
 	goTestGenerationFewShot string
 	goSelfReflectionFewShot string
+	testFunctionRegex       *regexp.Regexp
 }
 
 func NewGoGenerator(llm models.LLM) models.Generator {
+
 	goReflectionFewShotAdd := readTxt("./prompts/GoReflectionFewShotAdd.md")
 	goTestGenerationFewShot := readTxt("./prompts/GoTestGenerationFewShot.md")
 	goSelfReflectionFewShot := readTxt("./prompts/GoSelfReflectionFewShot.md")
@@ -51,6 +56,7 @@ func NewGoGenerator(llm models.LLM) models.Generator {
 		goReflectionFewShotAdd:  goReflectionFewShotAdd,
 		goTestGenerationFewShot: goTestGenerationFewShot,
 		goSelfReflectionFewShot: goSelfReflectionFewShot,
+		testFunctionRegex:       regexp.MustCompile(testFunctionPattern),
 	}
 }
 
@@ -94,13 +100,19 @@ func (g *goGenerator) GenerateSelfReflection(ctx context.Context, code string, f
 	return g.llm.Chat(ctx, messages)
 }
 
-func (g *goGenerator) GenerateTests(ctx context.Context, funcSignature string, code string) (*string, error) {
+func (g *goGenerator) GenerateTests(ctx context.Context, funcSignature string, code string) ([]string, error) {
 	messages := []models.ChatMessage{
 		{Type: models.SystemMessage, Content: fmt.Sprintf("%s\n%s", goTestGenerationChatInstruction, g.goTestGenerationFewShot)},
 		{Type: models.UserMessage, Content: fmt.Sprintf("[func signature]:\n%s\n\n[original code]:\n%s\n\n[unit tests]:", funcSignature, code)},
 	}
 
-	return g.llm.Chat(ctx, messages)
+	generatedTests, err := g.llm.Chat(ctx, messages)
+	if err != nil {
+		return nil, err
+	}
+
+	matches := g.testFunctionRegex.FindAllString(*generatedTests, -1)
+	return matches, nil
 }
 
 func (g *goGenerator) QueryFuncSignature(ctx context.Context, code string) (*string, error) {

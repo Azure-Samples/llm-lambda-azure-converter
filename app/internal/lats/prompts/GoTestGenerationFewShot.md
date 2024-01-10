@@ -1,12 +1,47 @@
 For example:
-func signature:
-/// Add three numbers together.
-/// This function takes three numbers as input and returns the sum of the three numbers.
-func Add3Numbers(x int, y int, z int) int {
 
-unit tests:
-func TestAdd(t *testing.T) {
-    assert := assert.New(t)
-    assert.Equal(7, Add3Numbers(2, 3+rand.Intn(1000)*0, 2))
-    assert.Equal(15, Add3Numbers(5, 7, 3))
+Given the following code:
+
+```go
+type Request struct {
+	InitCount int `json:"initCount"`
+}
+
+type Response struct {
+	Count int `json:"count"`
+}
+
+func handler(ctx context.Context, request Request) (Response, error) {
+	request.InitCount++
+	return Response{Count: request.InitCount}, nil
+}
+
+func main() {
+	lambda.Start(handler)
+}
+```
+
+if the handler signature changes to this:
+func handler(c *gin.Context)
+
+the unit tests would be:
+func TestHandler(t *testing.T) {
+    router := gin.Default()
+    router.POST("/handle", HandleRequest)
+
+    // Create a ResponseRecorder
+    w := httptest.NewRecorder()
+
+    // Create an HTTP handler from the Gin router
+    httpHandler := router
+
+    // Serve the HTTP request with our ResponseRecorder
+    httpHandler.ServeHTTP(w, tt.request())
+
+    // Assert HTTP response status code
+    assert.Equal(t, tt.expectedCode, w.Code)
+
+    // Assert HTTP response body
+    assert.Equal(t, tt.expectedBody, w.Body.String())
+
 }

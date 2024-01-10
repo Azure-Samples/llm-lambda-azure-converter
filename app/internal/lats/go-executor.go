@@ -18,11 +18,19 @@ const (
 
 var (
 	failedTestRegex *regexp.Regexp
+	codeBlockRegex  *regexp.Regexp
+	packageRegex	*regexp.Regexp
 )
 
 func init() {
 	failedTestPattern := "^(?:.+):(\\d+): (.+)$"
 	failedTestRegex = regexp.MustCompile(failedTestPattern)
+
+	codeBlockPattern := "(?s)```go(.*?)```"
+	codeBlockRegex = regexp.MustCompile(codeBlockPattern)
+
+	packagePattern := "(package \\w+)"
+	packageRegex = regexp.MustCompile(packagePattern)
 }
 
 type goExecutor struct {
@@ -98,19 +106,19 @@ func downloadImports(path string) error {
 	return nil
 }
 
-func buildProject(path string) ([]string, error) {
+func buildProject(path string, filename string) ([]string, error) {
 	cmd := exec.Command("go", "build", "./...")
 	cmd.Dir = path
 	output, err := cmd.Output()
 	if err != nil {
 		return nil, err
 	}
-	compileErrors := grabCompileErrs(string(output))
+	compileErrors := grabCompileErrs(string(output), filename)
 
 	return compileErrors, nil
 }
 
-func grabCompileErrs(output string) []string {
+func grabCompileErrs(output string, filename string) []string {
 	compileErrors := make([]string, 0)
 	compileErr := ""
 	for _, line := range strings.Split(output, "\n") {
@@ -120,7 +128,7 @@ func grabCompileErrs(output string) []string {
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, ".\\lats.go") {
+		if strings.HasPrefix(line, fmt.Sprintf( ".\\%s", filename)) {
 			if compileErr != "" {
 				compileErrors = append(compileErrors, compileErr)
 			}
@@ -137,12 +145,12 @@ func grabCompileErrs(output string) []string {
 	return compileErrors
 }
 
-func runTests(path string) ([]string, error) {
+func runTests(path string, filename string) ([]string, error) {
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = path
 	output, err := cmd.Output()
 	if err != nil {
-		compileErrors := grabCompileErrs(err.Error())
+		compileErrors := grabCompileErrs(string(output), filename)
 		return compileErrors, nil
 	}
 	return grabTestErrors(string(output)), nil
@@ -180,7 +188,11 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 	}
 	defer cleanUp(tempDir)
 
-	codePath := filepath.Join(tempDir, "lats.go")
+	code = codeBlockRegex.FindStringSubmatch(code)[1]
+	code = packageRegex.ReplaceAllString(code, "")
+
+	filename := "lats.go"
+	codePath := filepath.Join(tempDir, filename)
 	err = writeToFile(codePath, code)
 	if err != nil {
 		return nil, err
@@ -196,7 +208,7 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 		return nil, err
 	}
 
-	compileErrors, err := buildProject(tempDir)
+	compileErrors, err := buildProject(tempDir, filename)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +227,8 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 	failedFeedback := "Tested failed:\n"
 
 	for _, test := range tests {
-		testPath := filepath.Join(tempDir, "lats_test.go")
+		testFilename := "lats_test.go"
+		testPath := filepath.Join(tempDir, testFilename)
 		err = writeToFile(testPath, test)
 		if err != nil {
 			return nil, err
@@ -231,7 +244,7 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 			return nil, err
 		}
 
-		testErrors, err := runTests(tempDir)
+		testErrors, err := runTests(tempDir, testFilename)
 		if err != nil {
 			return nil, err
 		}

@@ -20,7 +20,6 @@ func TestHandleRequest(t *testing.T) {
 		expectedCode int
 		expectedBody string
 	}{
-		// TODO: Add test cases.
 		{
 			name: "success",
 			request: func() *http.Request {

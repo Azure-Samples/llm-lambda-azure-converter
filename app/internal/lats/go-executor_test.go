@@ -23,11 +23,13 @@ func Test_goExecutor_Execute(t *testing.T) {
 			name: "Successful execution",
 			e:    &goExecutor{},
 			args: args{
-				code: `
+				code: "```go" +`
+				package main
+
 				func salute(name string) string {
 					return fmt.Sprintf("Hello, %s!", name)
 				}
-				`,
+				` + "```",
 				tests: []string{
 					`
 					func TestSalute(t *testing.T) {
@@ -99,7 +101,7 @@ func Test_grabCompileErrs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := grabCompileErrs(tt.args.output); !reflect.DeepEqual(got, tt.want) {
+			if got := grabCompileErrs(tt.args.output, "lats.go"); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("grabCompileErrs() = %v, want %v", got, tt.want)
 			}
 		})

@@ -231,7 +231,7 @@ func Test_goGenerator_GenerateCodeWithReflection(t *testing.T) {
 			args: args{
 				code:           code,
 				previousResult: wrongGeneratedCode,
-				feedback: 	 feedback,
+				feedback:       feedback,
 				selfReflection: "The implementation is failing during compilation because the wrong struct type is being referenced in the `SaveHandler` function. Instead of using `Response`, which is the defined structure, `MyResponse` is mistakenly used when creating the JSON response, and `MyResponse` is not defined anywhere in the code. To fix this issue, the correct type `Response` should be used to create the JSON response.",
 			},
 		},
@@ -268,7 +268,7 @@ func Test_goGenerator_GenerateSelfReflection(t *testing.T) {
 		{
 			name: "Test GenerateSelfReflection",
 			args: args{
-				code: wrongGeneratedCode,
+				code:     wrongGeneratedCode,
 				feedback: feedback,
 			},
 			wantErr: false,
@@ -296,7 +296,7 @@ func Test_goGenerator_GenerateSelfReflection(t *testing.T) {
 func Test_goGenerator_GenerateTests(t *testing.T) {
 	type args struct {
 		funcSignature string
-		code string
+		code          string
 	}
 	tests := []struct {
 		name    string
@@ -307,7 +307,7 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 			name: "Test GenerateTests",
 			args: args{
 				funcSignature: "func SaveHandler(c *gin.Context)",
-				code: code,
+				code:          code,
 			},
 			wantErr: false,
 		},
@@ -324,8 +324,8 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 				t.Errorf("goGenerator.GenerateTests() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if len(*got) == 0 {
-				t.Errorf("goGenerator.GenerateTests() didn't generate a response")
+			if len(got) == 0 {
+				t.Errorf("goGenerator.GenerateTests() didn't generate any response")
 			}
 		})
 	}
@@ -338,7 +338,7 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want 	string
+		want    string
 		wantErr bool
 	}{
 		{
@@ -346,7 +346,7 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 			args: args{
 				code: generatedCode,
 			},
-			want: "```go\nfunc SaveHandler(c *gin.Context)\n```",
+			want:    "```go\nfunc SaveHandler(c *gin.Context)\n```",
 			wantErr: false,
 		},
 	}

@@ -3,6 +3,7 @@ package lats
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
@@ -51,9 +52,9 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 	if err != nil {
 		return nil, false, err
 	}
-	m.logger.Debug().Msgf("Generated tests:\n%s", *generatedTests)
+	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
 
-	result, err := m.executor.Execute(*generatedCode, []string{*generatedTests})
+	result, err := m.executor.Execute(*generatedCode, generatedTests)
 	if err != nil {
 		return nil, false, err
 	}
@@ -141,7 +142,7 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		return nil, err
 	}
 
-	result, err := m.executor.Execute(*generatedCode, []string{*generatedTests})
+	result, err := m.executor.Execute(*generatedCode, generatedTests)
 	if err != nil {
 		return nil, err
 	}
