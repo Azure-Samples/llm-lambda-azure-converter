@@ -104,6 +104,64 @@ package main
         }
 `
 
+const wrongGeneratedCode = `
+package main
+
+        import (
+                "fmt"
+                "net/http"
+                "github.com/gin-gonic/gin"
+
+                "github.com/msft-latam-devsquad/lambda-to-azure-converter/go-examples/examples/storage"
+        )
+
+        // Define the request and response structures.
+        type SaveRequest struct {
+                Id string
+        }
+
+        type Response struct {
+                Message string
+        }
+
+        // SaveHandler handles the HTTP POST request to save data.
+        func SaveHandler(c *gin.Context) {
+                var req SaveRequest
+
+                // Bind the incoming JSON payload to the SaveRequest struct.
+                if err := c.ShouldBindJSON(&req); err != nil {
+                        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+                        return
+                }
+
+                // Initialize AzureStorage.
+                azStore := storage.NewAzureStorage()
+
+                // Save the data using the AzureStorage instance.
+                if err := azStore.Save(c, req.Id); err != nil {
+                        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+                        return
+                }
+
+                // Send back a successful response.
+                message := fmt.Sprintf("Request %s was successfully saved", req.Id)
+                c.JSON(http.StatusOK, MyResponse{Message: message})
+        }
+
+        func main() {
+                // Set up Gin router.
+                router := gin.Default()
+
+                // Define the endpoint matching the original Lambda function.
+                router.POST("/save", SaveHandler)
+
+                // Start the server.
+                router.Run() // Default port is 8080
+        }
+`
+
+const feedback = "cmd\\example\\main.go:41:24: undefined: MyResponse"
+
 func generateGoGenerator() (models.Generator, error) {
 	v := viper.GetViper()
 	file, err := os.Open("../../config.yaml")
@@ -152,7 +210,6 @@ func Test_goGenerator_GenerateCode(t *testing.T) {
 			if len(*got) == 0 {
 				t.Errorf("goGenerator.GenerateCode() didn't generate a response")
 			}
-			t.Logf("Generated code:\n%s", *got)
 		})
 	}
 }
@@ -171,6 +228,12 @@ func Test_goGenerator_GenerateCodeWithReflection(t *testing.T) {
 	}{
 		{
 			name: "Test GenerateCodeWithReflection",
+			args: args{
+				code:           code,
+				previousResult: wrongGeneratedCode,
+				feedback: 	 feedback,
+				selfReflection: "The implementation is failing during compilation because the wrong struct type is being referenced in the `SaveHandler` function. Instead of using `Response`, which is the defined structure, `MyResponse` is mistakenly used when creating the JSON response, and `MyResponse` is not defined anywhere in the code. To fix this issue, the correct type `Response` should be used to create the JSON response.",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -188,37 +251,43 @@ func Test_goGenerator_GenerateCodeWithReflection(t *testing.T) {
 			if len(*got) == 0 {
 				t.Errorf("goGenerator.GenerateCodeWithReflection() didn't generate a response")
 			}
-			t.Logf("Generated code:\n%s", *got)
 		})
 	}
 }
 
 func Test_goGenerator_GenerateSelfReflection(t *testing.T) {
 	type args struct {
-		ctx      context.Context
 		code     string
 		feedback string
 	}
 	tests := []struct {
 		name    string
-		g       *goGenerator
 		args    args
-		want    *string
 		wantErr bool
 	}{
 		{
 			name: "Test GenerateSelfReflection",
+			args: args{
+				code: wrongGeneratedCode,
+				feedback: feedback,
+			},
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.g.GenerateSelfReflection(tt.args.ctx, tt.args.code, tt.args.feedback)
+			generator, err := generateGoGenerator()
+			if err != nil {
+				t.Errorf("error creating goGenerator: %v", err)
+				return
+			}
+			got, err := generator.GenerateSelfReflection(context.Background(), tt.args.code, tt.args.feedback)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("goGenerator.GenerateSelfReflection() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("goGenerator.GenerateSelfReflection() = %v, want %v", got, tt.want)
+			if len(*got) == 0 {
+				t.Errorf("goGenerator.GenerateSelfReflection() didn't generate a response")
 			}
 		})
 	}
@@ -256,7 +325,6 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 			if len(*got) == 0 {
 				t.Errorf("goGenerator.GenerateTests() didn't generate a response")
 			}
-			t.Logf("Generated tests:\n%s", *got)
 		})
 	}
 }
@@ -295,7 +363,6 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 			if !reflect.DeepEqual(*got, tt.want) {
 				t.Errorf("goGenerator.QueryFuncSignature() = %v, want %v", got, tt.want)
 			}
-			t.Logf("Generated code:\n%s", *got)
 		})
 	}
 }
