@@ -14,8 +14,8 @@ const (
 	goSimpleChatInstruction         = "You are an AI that only responds with Go code, NOT ENGLISH. You will be given a lambda function code. Rewrite the code without using lambda code and using a GinGonic server instead."
 	goReflectionChatInstruction     = "You are an AI Go assistant. You will be given your past function implementation, a series of unit tests, and a hint to change the implementation appropriately. Write your full implementation (restate the function signature)."
 	goSelfReflectionChatInstruction = "You are a Go programming assistant. You will be given a function implementation and a series of unit tests. Your goal is to write a few sentences to explain why your implementation is wrong as indicated by the tests. You will need this as a hint when you try again later. Only provide the few sentence description in your answer, not the implementation."
-	goTestGenerationChatInstruction = "You are a Go programming assistant, an AI coding assistant that can write unique, diverse, and intuitive unit tests for functions. You will be given a lambda code, and asked to generate the tests for this code but changing the tested handler to use a different signature."
-	goSignatureChatInstruction      = "You are an AI Go assistant. You will be given a function implementation, and from it you will extract the handler function signature."
+	goTestGenerationChatInstruction = "You are a Go programming assistant, an AI coding assistant that can write unique, diverse, and intuitive unit tests for functions. You will be given a lambda function code, and using it you will generate tests for it as if it was called by an http trigger. Do not test the handler directly, create an http test server instead and use it to call the handler."
+	goSignatureChatInstruction      = "You are an AI Go assistant. You will be given a function implementation, and from it you will extract the http endpoint."
 	goCodeBlockInstruction          = "Use a Go code block to write your response. For example:\n```go\nfunc main() {\n    fmt.Println(\"Hello, World!\")\n}\n```"
 
 	testFunctionPattern = `(?s)(func Test\w+\(t \*testing.T\) \{.*?\n\})`
@@ -117,7 +117,7 @@ func (g *goGenerator) GenerateTests(ctx context.Context, funcSignature string, c
 
 func (g *goGenerator) QueryFuncSignature(ctx context.Context, code string) (*string, error) {
 	messages := []models.ChatMessage{
-		{Type: models.SystemMessage, Content: fmt.Sprintf("%s\n%s", goSignatureChatInstruction, goCodeBlockInstruction)},
+		{Type: models.SystemMessage, Content: goSignatureChatInstruction},
 		{Type: models.UserMessage, Content: code},
 	}
 

@@ -21,8 +21,8 @@ func main() {
 }
 ```
 
-if the handler signature changes to this:
-func handler(c *gin.Context)
+using the following endpoint:
+/handle
 
 the unit tests would be:
 func TestHandler(t *testing.T) {
