@@ -1,6 +1,7 @@
 package lats
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -146,14 +147,18 @@ func grabCompileErrs(output string, filename string) []string {
 }
 
 func runTests(path string, filename string) ([]string, error) {
+	testErrors := make([]string, 0)
 	cmd := exec.Command("go", "test", "./...")
 	cmd.Dir = path
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	output, err := cmd.Output()
 	if err != nil {
-		compileErrors := grabCompileErrs(string(output), filename)
-		return compileErrors, nil
+		compileErrors := grabCompileErrs(stderr.String(), filename)
+		testErrors = append(testErrors, compileErrors...)
 	}
-	return grabTestErrors(string(output)), nil
+	testErrors = append(testErrors, grabTestErrors(string(output))...)
+	return testErrors, nil
 }
 
 func grabTestErrors(output string) []string {
