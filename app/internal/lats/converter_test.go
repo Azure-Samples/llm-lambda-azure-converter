@@ -47,7 +47,7 @@ const test1 = `func TestHandleRequest(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/handle", strings.NewReader(req))
 			},
 			expectedCode: http.StatusOK,
-			expectedBody: "{\"message\":"\Hello Ana!\"}",
+			expectedBody: "{\"message\":\"Hello Ana!\"}",
 		},
 	}
 	for _, tt := range tests {
@@ -91,7 +91,7 @@ const test2 = `func TestHandleRequest(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/handle", strings.NewReader(req))
 			},
 			expectedCode: http.StatusOK,
-			expectedBody: "{\"message\":"\Hello Cassien!\"}",
+			expectedBody: "{\"message\":\"Hello Cassien!\"}",
 		},
 	}
 	for _, tt := range tests {
@@ -135,7 +135,7 @@ const test3 = `func TestHandleRequest(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/handle", strings.NewReader(req))
 			},
 			expectedCode: http.StatusOK,
-			expectedBody: "{\"message\":"\Hello Hazel!\"}",
+			expectedBody: "{\"message\":\"Hello Hazel!\"}",
 		},
 	}
 	for _, tt := range tests {
@@ -166,6 +166,7 @@ func Test_converter_Convert(t *testing.T) {
 	type args struct {
 		code          string
 		originalTests []string
+		generateTests bool
 	}
 	tests := []struct {
 		name         string
@@ -196,6 +197,7 @@ func Test_converter_Convert(t *testing.T) {
 			args: args{
 				code:          codeToConvert,
 				originalTests: []string{test1, test2, test3},
+				generateTests: false,
 			},
 			wantPass: true,
 			wantErr:  false,
@@ -205,16 +207,16 @@ func Test_converter_Convert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			converter := tt.getConverter(t)
-			got, pass, err := converter.Convert(context.Background(), tt.args.code, tt.args.originalTests)
+			got, pass, err := converter.Convert(context.Background(), tt.args.code, tt.args.originalTests, tt.args.generateTests)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("converter.Convert() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if len(*got) == 0 {
-				t.Errorf("converter.Convert() didn't return any solution got = %v", got)
-			}
 			if pass != tt.wantPass {
 				t.Errorf("converter.Convert() pass = %v, want %v", pass, tt.wantPass)
+			}
+			if len(*got) == 0 {
+				t.Errorf("converter.Convert() didn't return any solution got = %v", got)
 			}
 		})
 	}

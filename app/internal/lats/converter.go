@@ -11,7 +11,7 @@ import (
 )
 
 type Converter interface {
-	Convert(ctx context.Context, code string, tests []string) (*string, bool, error)
+	Convert(ctx context.Context, code string, tests []string, generateTests bool) (*string, bool, error)
 }
 
 type converter struct {
@@ -34,7 +34,7 @@ func NewConverter(generator models.Generator, executor models.Executor, config L
 	}
 }
 
-func (m *converter) Convert(ctx context.Context, code string, originalTests []string) (*string, bool, error) {
+func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*string, bool, error) {
 
 	generatedCode, err := m.generator.GenerateCode(ctx, code)
 	if err != nil {
@@ -42,17 +42,22 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 	}
 	m.logger.Debug().Msgf("Generated code:\n%s", *generatedCode)
 
-	signature, err := m.generator.QueryFuncSignature(ctx, *generatedCode)
-	if err != nil {
-		return nil, false, err
-	}
-	m.logger.Debug().Msgf("Generated signature:\n%s", *signature)
+	var generatedTests []string
+	if generateTests {
+		signature, err := m.generator.QueryFuncSignature(ctx, *generatedCode)
+		if err != nil {
+			return nil, false, err
+		}
+		m.logger.Debug().Msgf("Generated signature:\n%s", *signature)
 
-	generatedTests, err := m.generator.GenerateTests(ctx, *signature, code)
-	if err != nil {
-		return nil, false, err
+		generatedTests, err = m.generator.GenerateTests(ctx, *signature, code)
+		if err != nil {
+			return nil, false, err
+		}
+		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
+	} else {
+		generatedTests = originalTests
 	}
-	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
 
 	result, err := m.executor.Execute(*generatedCode, generatedTests)
 	if err != nil {
@@ -62,7 +67,7 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 	if result.IsPassing {
 		finalResult, err := m.executor.Execute(*generatedCode, originalTests)
-		if err != nil && finalResult.IsPassing {
+		if err == nil && finalResult.IsPassing {
 			return generatedCode, true, nil
 		}
 		result = finalResult
