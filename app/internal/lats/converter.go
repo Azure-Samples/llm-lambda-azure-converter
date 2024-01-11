@@ -44,13 +44,7 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 	var generatedTests []string
 	if generateTests {
-		signature, err := m.generator.QueryFuncSignature(ctx, *generatedCode)
-		if err != nil {
-			return nil, false, err
-		}
-		m.logger.Debug().Msgf("Generated signature:\n%s", *signature)
-
-		generatedTests, err = m.generator.GenerateTests(ctx, *signature, code)
+		generatedTests, err = m.generator.GenerateTests(ctx, code, *generatedCode)
 		if err != nil {
 			return nil, false, err
 		}

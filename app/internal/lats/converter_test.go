@@ -30,7 +30,10 @@ func main() {
 }
 `
 
-const test1 = `func TestHandleRequest(t *testing.T) {
+const test1 = "```go\n" + `
+package main
+
+func TestHandleRequest(t *testing.T) {
 	type args struct {
 		request *http.Request
 	}
@@ -72,9 +75,12 @@ const test1 = `func TestHandleRequest(t *testing.T) {
 
 		})
 	}
-}`
+}` + "\n```"
 
-const test2 = `func TestHandleRequest(t *testing.T) {
+const test2 = "```go\n" + `
+package main
+
+func TestHandleRequest(t *testing.T) {
 	type args struct {
 		request *http.Request
 	}
@@ -116,9 +122,12 @@ const test2 = `func TestHandleRequest(t *testing.T) {
 
 		})
 	}
-}`
+}` + "\n```"
 
-const test3 = `func TestHandleRequest(t *testing.T) {
+const test3 = "```go\n" + `
+package main
+
+func TestHandleRequest(t *testing.T) {
 	type args struct {
 		request *http.Request
 	}
@@ -160,7 +169,7 @@ const test3 = `func TestHandleRequest(t *testing.T) {
 
 		})
 	}
-}`
+}` + "\n```"
 
 func Test_converter_Convert(t *testing.T) {
 	type args struct {
@@ -197,7 +206,7 @@ func Test_converter_Convert(t *testing.T) {
 			args: args{
 				code:          codeToConvert,
 				originalTests: []string{test1, test2, test3},
-				generateTests: false,
+				generateTests: true,
 			},
 			wantPass: true,
 			wantErr:  false,

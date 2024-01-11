@@ -20,7 +20,7 @@ const (
 var (
 	failedTestRegex *regexp.Regexp
 	codeBlockRegex  *regexp.Regexp
-	packageRegex	*regexp.Regexp
+	packageRegex    *regexp.Regexp
 )
 
 func init() {
@@ -54,8 +54,14 @@ func createTempProject(targetDir string) error {
 }
 
 func writeToFile(path, code string) error {
-	prelude := "package lats\n\n"
-	code = prelude + code
+	if strings.Contains(code, "```") {
+		code = codeBlockRegex.FindStringSubmatch(code)[1]
+	}
+	if strings.Contains(code, "package") {
+		code = packageRegex.ReplaceAllString(code, "package lats")
+	} else {
+		code = "package lats\n\n" + code
+	}
 
 	file, err := os.Create(path)
 	if err != nil {
@@ -72,33 +78,29 @@ func writeToFile(path, code string) error {
 }
 
 func formatFile(path string) error {
-	cmd := exec.Command("go", "fmt", path)
+	cmd := exec.Command("goimports", "-w", path)
 	cmd.Dir = filepath.Dir(path)
 	_, err := cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	cmd = exec.Command("goimports", "-w", path)
+	cmd = exec.Command("go", "get", "-d", "./...")
 	cmd.Dir = filepath.Dir(path)
 	_, err = cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	return nil
-}
-
-func downloadImports(path string) error {
-	cmd := exec.Command("go", "get", "-d", "./...")
-	cmd.Dir = path
-	_, err := cmd.Output()
+	cmd = exec.Command("go", "mod", "tidy")
+	cmd.Dir = filepath.Dir(path)
+	_, err = cmd.Output()
 	if err != nil {
 		return err
 	}
 
-	cmd = exec.Command("go", "mod", "tidy")
-	cmd.Dir = path
+	cmd = exec.Command("go", "fmt", path)
+	cmd.Dir = filepath.Dir(path)
 	_, err = cmd.Output()
 	if err != nil {
 		return err
@@ -129,7 +131,7 @@ func grabCompileErrs(output string, filename string) []string {
 		if strings.HasPrefix(line, "#") {
 			continue
 		}
-		if strings.HasPrefix(line, fmt.Sprintf( ".\\%s", filename)) {
+		if strings.HasPrefix(line, fmt.Sprintf(".\\%s", filename)) {
 			if compileErr != "" {
 				compileErrors = append(compileErrors, compileErr)
 			}
@@ -163,22 +165,29 @@ func runTests(path string, filename string) ([]string, error) {
 
 func grabTestErrors(output string) []string {
 	failedAsserts := make([]string, 0)
+	failedAssert := ""
 	for _, line := range strings.Split(output, "\n") {
 		if strings.HasPrefix(line, "        lats_test.go") {
-			matches := failedTestRegex.FindStringSubmatch(strings.Trim(line, ""))
-			var lineNo, panicReason string
-			if len(matches) == 3 {
-				lineNo = matches[1]
-				panicReason = matches[2]
+			if failedAssert != "" {
+				failedAsserts = append(failedAsserts, failedAssert)
 			}
-			failedAsserts = append(failedAsserts, fmt.Sprintf("[Line] %s, [Reason] %s", lineNo, panicReason))
+			failedAssert = strings.Trim(line, "") + "\n"
 		}
+		if strings.HasPrefix(line, "        ") {
+			failedAssert += strings.Trim(line, "") + "\n"
+		}
+	}
+	if failedAssert != "" {
+		failedAsserts = append(failedAsserts, failedAssert)
 	}
 	return failedAsserts
 }
 
 func cleanUp(tempDir string) {
-	os.RemoveAll(tempDir)
+	err := os.RemoveAll(tempDir)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResult, error) {
@@ -193,9 +202,6 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 	}
 	defer cleanUp(tempDir)
 
-	code = codeBlockRegex.FindStringSubmatch(code)[1]
-	code = packageRegex.ReplaceAllString(code, "")
-
 	filename := "lats.go"
 	codePath := filepath.Join(tempDir, filename)
 	err = writeToFile(codePath, code)
@@ -204,11 +210,6 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 	}
 
 	err = formatFile(codePath)
-	if err != nil {
-		return nil, err
-	}
-
-	err = downloadImports(tempDir)
 	if err != nil {
 		return nil, err
 	}
@@ -240,11 +241,6 @@ func (e *goExecutor) Execute(code string, tests []string) (*models.ExecutionResu
 		}
 
 		err = formatFile(testPath)
-		if err != nil {
-			return nil, err
-		}
-
-		err = downloadImports(tempDir)
 		if err != nil {
 			return nil, err
 		}
