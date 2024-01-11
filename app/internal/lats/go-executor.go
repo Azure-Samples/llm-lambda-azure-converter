@@ -282,5 +282,5 @@ func calculateScore(isPassing bool, compiles bool, totalTests int, passingTests 
 	}
 	totalPoints := compilePoints + passingTests
 
-	return float32(maxPoints) / float32(totalPoints)
+	return float32(totalPoints) / float32(maxPoints)
 }

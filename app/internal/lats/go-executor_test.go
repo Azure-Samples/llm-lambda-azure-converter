@@ -23,7 +23,7 @@ func Test_goExecutor_Execute(t *testing.T) {
 			name: "Successful execution",
 			e:    &goExecutor{},
 			args: args{
-				code: "```go" +`
+				code: "```go" + `
 				package main
 
 				func salute(name string) string {
@@ -140,6 +140,78 @@ FAIL`,
 		t.Run(tt.name, func(t *testing.T) {
 			if got := grabTestErrors(tt.args.output); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("grabTestErrors() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_calculateScore(t *testing.T) {
+	type args struct {
+		isPassing    bool
+		compiles     bool
+		totalTests   int
+		passingTests int
+	}
+	tests := []struct {
+		name string
+		args args
+		want float32
+	}{
+		{
+			name: "Passing",
+			args: args{
+				isPassing:    true,
+				compiles:     true,
+				totalTests:   8,
+				passingTests: 8,
+			},
+			want: 1,
+		},
+		{
+			name: "Not compiling",
+			args: args{
+				isPassing:    false,
+				compiles:     false,
+				totalTests:   8,
+				passingTests: 0,
+			},
+			want: 0,
+		},
+		{
+			name: "Compiles but no test pass",
+			args: args{
+				isPassing:    false,
+				compiles:     true,
+				totalTests:   8,
+				passingTests: 0,
+			},
+			want: 0.2,
+		},
+		{
+			name: "Compiles and 2 tests pass",
+			args: args{
+				isPassing:    false,
+				compiles:     true,
+				totalTests:   8,
+				passingTests: 2,
+			},
+			want: 0.4,
+		},
+		{
+			name: "Compiles and 6 tests pass",
+			args: args{
+				isPassing:    false,
+				compiles:     true,
+				totalTests:   8,
+				passingTests: 6,
+			},
+			want: 0.8,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := calculateScore(tt.args.isPassing, tt.args.compiles, tt.args.totalTests, tt.args.passingTests); got != tt.want {
+				t.Errorf("calculateScore() = %v, want %v", got, tt.want)
 			}
 		})
 	}
