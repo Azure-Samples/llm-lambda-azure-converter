@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run API",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "./app",
+            "program": "./app/cmd/api/",
+        },
+        {
+            "name": "Run CLI version",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "./app",
+            "program": "./app/cmd/cli/",
+            "args": [
+                "version"
+            ]
+        },
+        {
+            "name": "Run CLI convert",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "./app",
+            "program": "./app/cmd/cli/",
+            "args": [
+                "convert",
+                "--code-path",
+                "../go-examples/examples/gin/basic-conversion-1/input/main.go",
+                "--test-path",
+                "../go-examples/examples/gin/basic-conversion-1/output/main_test.go",
+            ]
+        }
+
+    ]
+}
