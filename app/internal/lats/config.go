@@ -1,8 +1,6 @@
 package lats
 
 import (
-	"strings"
-
 	"github.com/spf13/viper"
 )
 
@@ -13,17 +11,8 @@ const (
 	AzureOpenAIDeploymentNameConfig = "azure.openai.deployment"
 	ConverterMaxIterationsConfig    = "converter.maxIterations"
 	ConverterMaxChildrenConfig      = "converter.maxChildren"
+	ServerPortConfig                = "server.port"
 )
-
-func init() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./..")
-	viper.AddConfigPath("./../..")
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	viper.AutomaticEnv()
-}
 
 type LatsConfig struct {
 	AzureOpenAIApiKey         string
@@ -32,6 +21,7 @@ type LatsConfig struct {
 	AzureOpenAIDeploymentName string
 	ConverterMaxIterations    int
 	ConverterMaxChildren      int
+	ServerPort                int
 }
 
 func NewLatsConfig(v viper.Viper) *LatsConfig {
@@ -42,5 +32,6 @@ func NewLatsConfig(v viper.Viper) *LatsConfig {
 		AzureOpenAIDeploymentName: v.GetString(AzureOpenAIDeploymentNameConfig),
 		ConverterMaxIterations:    v.GetInt(ConverterMaxIterationsConfig),
 		ConverterMaxChildren:      v.GetInt(ConverterMaxChildrenConfig),
+		ServerPort:                v.GetInt(ServerPortConfig),
 	}
 }

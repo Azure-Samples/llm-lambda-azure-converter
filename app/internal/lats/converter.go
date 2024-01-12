@@ -10,10 +10,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Converter interface {
-	Convert(ctx context.Context, code string, tests []string, generateTests bool) (*string, bool, error)
-}
-
 type converter struct {
 	generator     models.Generator
 	executor      models.Executor
@@ -22,7 +18,7 @@ type converter struct {
 	logger        zerolog.Logger
 }
 
-func NewConverter(generator models.Generator, executor models.Executor, config LatsConfig) Converter {
+func NewConverter(generator models.Generator, executor models.Executor, config LatsConfig) models.Converter {
 	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().Caller().Logger()
 	return &converter{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
@@ -46,11 +47,11 @@ type goGenerator struct {
 	testFunctionRegex       *regexp.Regexp
 }
 
-func NewGoGenerator(llm models.LLM) models.Generator {
+func NewGoGenerator(llm models.LLM, promptsDir string) models.Generator {
 
-	goReflectionFewShotAdd := readTxt("./prompts/GoReflectionFewShotAdd.md")
-	goTestGenerationFewShot := readTxt("./prompts/GoTestGenerationFewShot.md")
-	goSelfReflectionFewShot := readTxt("./prompts/GoSelfReflectionFewShot.md")
+	goReflectionFewShotAdd := readTxt(filepath.Join(promptsDir, "GoReflectionFewShotAdd.md"))
+	goTestGenerationFewShot := readTxt(filepath.Join(promptsDir, "GoTestGenerationFewShot.md"))
+	goSelfReflectionFewShot := readTxt(filepath.Join(promptsDir, "GoSelfReflectionFewShot.md"))
 
 	return &goGenerator{
 		llm:                     llm,

@@ -174,7 +174,7 @@ func generateGoGenerator() (models.Generator, error) {
 	if err != nil {
 		return nil, err
 	}
-	gen := NewGoGenerator(llm)
+	gen := NewGoGenerator(llm, "./prompts")
 	return gen, nil
 }
 

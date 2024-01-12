@@ -5,16 +5,17 @@ import (
 	"os"
 	"testing"
 
+	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
 	"github.com/spf13/viper"
 )
 
 const codeToConvert = `
 type MyEvent struct {
-	Name string `+ "`json:\"name\"`" + `
+	Name string ` + "`json:\"name\"`" + `
 }
 
 type MyResponse struct {
-	Message string `+ "`json:\"message\"`" + `
+	Message string ` + "`json:\"message\"`" + `
 }
 
 func HandleRequest(ctx context.Context, event *MyEvent) (*MyResponse, error) {
@@ -179,14 +180,14 @@ func Test_converter_Convert(t *testing.T) {
 	}
 	tests := []struct {
 		name         string
-		getConverter func(t *testing.T) Converter
+		getConverter func(t *testing.T) models.Converter
 		args         args
 		wantPass     bool
 		wantErr      bool
 	}{
 		{
 			name: "Go Converter",
-			getConverter: func(t *testing.T) Converter {
+			getConverter: func(t *testing.T) models.Converter {
 				executor := NewGoExecutor()
 				v := viper.GetViper()
 				file, err := os.Open("../../config.yaml")
@@ -199,7 +200,7 @@ func Test_converter_Convert(t *testing.T) {
 				if err != nil {
 					t.Errorf("error creating the LLM: %v", err)
 				}
-				generator := NewGoGenerator(llm)
+				generator := NewGoGenerator(llm, "/prompts")
 
 				return NewConverter(generator, executor, *config)
 			},

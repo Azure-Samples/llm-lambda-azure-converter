@@ -18,6 +18,8 @@ azure:
 converter:
   maxIterations: 5
   maxChildren: 3
+server:
+  port: 8080
 `
 
 func TestNewLatsConfig(t *testing.T) {
@@ -25,9 +27,10 @@ func TestNewLatsConfig(t *testing.T) {
 		v func() viper.Viper
 	}
 	tests := []struct {
-		name string
-		args args
-		want *LatsConfig
+		name    string
+		args    args
+		want    *LatsConfig
+		wantErr bool
 	}{
 		{
 			name: "Test NewLatsConfig",
@@ -40,19 +43,21 @@ func TestNewLatsConfig(t *testing.T) {
 				},
 			},
 			want: &LatsConfig{
-				AzureOpenAIApiKey: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-				AzureOpenAIEndpoint: "https://lats.openai.azure.com/",
-				AzureOpenAIApiVersion: "2023-12-01",
+				AzureOpenAIApiKey:         "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+				AzureOpenAIEndpoint:       "https://lats.openai.azure.com/",
+				AzureOpenAIApiVersion:     "2023-12-01",
 				AzureOpenAIDeploymentName: "GPT-4",
-				ConverterMaxIterations: 5,
-				ConverterMaxChildren: 3,
+				ConverterMaxIterations:    5,
+				ConverterMaxChildren:      3,
+				ServerPort:                8080,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := tt.args.v()
-			if got := NewLatsConfig(v); !reflect.DeepEqual(got, tt.want) {
+			got := NewLatsConfig(v)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewLatsConfig() = %v, want %v", got, tt.want)
 			}
 		})
