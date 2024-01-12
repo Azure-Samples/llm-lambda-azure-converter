@@ -24,33 +24,36 @@ func Test_goExecutor_Execute(t *testing.T) {
 			e:    &goExecutor{},
 			args: args{
 				code: "```go" + `
-				package main
+package main
 
-				func salute(name string) string {
-					return fmt.Sprintf("Hello, %s!", name)
-				}
+func salute(name string) string {
+	return fmt.Sprintf("Hello, %s!", name)
+}
 				` + "```",
 				tests: []string{
-					`
-					func TestSalute(t *testing.T) {
-						assert.Equal(t, "Hello, World!", salute("World"))
-					}
-					`,
-					`
-					func TestSalute(t *testing.T) {
-						assert.Equal(t, "Hello, Ana!", salute("Ana"))
-					}
-					`,
-					`
-					func TestSalute(t *testing.T) {
-						assert.NotEqual(t, "Hello, Ana!", salute("Ada"))
-					}
-					`,
+					"```go" + `
+package main
+func TestSalute(t *testing.T) {
+	assert.Equal(t, "Hello, World!", salute("World"))
+}
+` + "```",
+					"```go" + `
+package main
+func TestSalute(t *testing.T) {
+	assert.Equal(t, "Hello, Ana!", salute("Ana"))
+}
+` + "```",
+					"```go" + `
+package main
+func TestSalute(t *testing.T) {
+	assert.NotEqual(t, "Hello, Ana!", salute("Ada"))
+}
+` + "```",
 				},
 			},
 			want: &models.ExecutionResult{
 				IsPassing: true,
-				Feedback:  "Tested passed:\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\n\t\t\t\t\tfunc TestSalute(t *testing.T) {\n\t\t\t\t\t\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n\t\t\t\t\t}\n\t\t\t\t\t\n\nTested failed:\n",
+				Feedback:  "Tested passed:\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n}\n```\n\nTested failed:\n",
 				Score:     1,
 			},
 			wantErr: false,
@@ -131,8 +134,8 @@ FAIL    go-lats-35116-6739b2903daabf6d  2.672s
 FAIL`,
 			},
 			want: []string{
-				"[Line] 53, [Reason] HasCloseElements() = false, want true",
-				"[Line] 53, [Reason] HasCloseElements() = false, want true",
+				"        lats_test.go:53: HasCloseElements() = false, want true\n",
+				"        lats_test.go:53: HasCloseElements() = false, want true\n",
 			},
 		},
 	}

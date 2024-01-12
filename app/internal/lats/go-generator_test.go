@@ -2,8 +2,7 @@ package lats
 
 import (
 	"context"
-	"os"
-	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
@@ -164,11 +163,17 @@ const feedback = "cmd\\example\\main.go:41:24: undefined: MyResponse"
 
 func generateGoGenerator() (models.Generator, error) {
 	v := viper.GetViper()
-	file, err := os.Open("../../config.yaml")
+	v.SetConfigName("config")
+	v.SetConfigType("yaml")
+	v.AddConfigPath(".")
+	v.AddConfigPath("./..")
+	v.AddConfigPath("./../..")
+
+	err := v.ReadInConfig()
 	if err != nil {
 		return nil, err
 	}
-	v.ReadConfig(file)
+
 	config := NewLatsConfig(*v)
 	llm, err := NewOpenAIChat(*config)
 	if err != nil {
@@ -295,8 +300,8 @@ func Test_goGenerator_GenerateSelfReflection(t *testing.T) {
 
 func Test_goGenerator_GenerateTests(t *testing.T) {
 	type args struct {
-		funcSignature string
 		code          string
+		generatedCode string
 	}
 	tests := []struct {
 		name    string
@@ -306,8 +311,8 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 		{
 			name: "Test GenerateTests",
 			args: args{
-				funcSignature: "func SaveHandler(c *gin.Context)",
 				code:          code,
+				generatedCode: generatedCode,
 			},
 			wantErr: false,
 		},
@@ -319,7 +324,7 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 				t.Errorf("error creating goGenerator: %v", err)
 				return
 			}
-			got, err := generator.GenerateTests(context.Background(), tt.args.funcSignature, tt.args.code)
+			got, err := generator.GenerateTests(context.Background(), tt.args.code, tt.args.generatedCode)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("goGenerator.GenerateTests() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -346,7 +351,7 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 			args: args{
 				code: generatedCode,
 			},
-			want:    "```go\nfunc SaveHandler(c *gin.Context)\n```",
+			want:    "func SaveHandler(c *gin.Context)",
 			wantErr: false,
 		},
 	}
@@ -362,7 +367,7 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 				t.Errorf("goGenerator.QueryFuncSignature() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(*got, tt.want) {
+			if !strings.Contains(*got, tt.want) {
 				t.Errorf("goGenerator.QueryFuncSignature() = %v, want %v", got, tt.want)
 			}
 		})

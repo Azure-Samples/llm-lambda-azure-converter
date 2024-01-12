@@ -127,12 +127,7 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		return nil, err
 	}
 
-	signature, err := m.generator.QueryFuncSignature(ctx, *generatedCode)
-	if err != nil {
-		return nil, err
-	}
-
-	generatedTests, err := m.generator.GenerateTests(ctx, *signature, code)
+	generatedTests, err := m.generator.GenerateTests(ctx, code, *generatedCode)
 	if err != nil {
 		return nil, err
 	}

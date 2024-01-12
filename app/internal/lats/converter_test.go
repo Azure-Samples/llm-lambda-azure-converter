@@ -2,7 +2,6 @@ package lats
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
@@ -190,11 +189,16 @@ func Test_converter_Convert(t *testing.T) {
 			getConverter: func(t *testing.T) models.Converter {
 				executor := NewGoExecutor()
 				v := viper.GetViper()
-				file, err := os.Open("../../config.yaml")
+				v.SetConfigName("config")
+				v.SetConfigType("yaml")
+				v.AddConfigPath(".")
+				v.AddConfigPath("./..")
+				v.AddConfigPath("./../..")
+			
+				err := v.ReadInConfig()
 				if err != nil {
 					t.Errorf("error reading config file: %v", err)
 				}
-				v.ReadConfig(file)
 				config := NewLatsConfig(*v)
 				llm, err := NewOpenAIChat(*config)
 				if err != nil {

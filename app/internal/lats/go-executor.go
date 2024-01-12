@@ -172,8 +172,7 @@ func grabTestErrors(output string) []string {
 				failedAsserts = append(failedAsserts, failedAssert)
 			}
 			failedAssert = strings.Trim(line, "") + "\n"
-		}
-		if strings.HasPrefix(line, "        ") {
+		} else if strings.HasPrefix(line, "        ") {
 			failedAssert += strings.Trim(line, "") + "\n"
 		}
 	}
