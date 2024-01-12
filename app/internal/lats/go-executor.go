@@ -18,15 +18,11 @@ const (
 )
 
 var (
-	failedTestRegex *regexp.Regexp
 	codeBlockRegex  *regexp.Regexp
 	packageRegex    *regexp.Regexp
 )
 
 func init() {
-	failedTestPattern := "^(?:.+):(\\d+): (.+)$"
-	failedTestRegex = regexp.MustCompile(failedTestPattern)
-
 	codeBlockPattern := "(?s)```go(.*?)```"
 	codeBlockRegex = regexp.MustCompile(codeBlockPattern)
 
@@ -78,32 +74,37 @@ func writeToFile(path, code string) error {
 }
 
 func formatFile(path string) error {
+	var stderr bytes.Buffer
 	cmd := exec.Command("goimports", "-w", path)
 	cmd.Dir = filepath.Dir(path)
+	cmd.Stderr = &stderr
 	_, err := cmd.Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not format the code:\n%s", stderr.String())
 	}
 
 	cmd = exec.Command("go", "get", "-d", "./...")
 	cmd.Dir = filepath.Dir(path)
+	cmd.Stderr = &stderr
 	_, err = cmd.Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not get the dependencies:\n%s", stderr.String())
 	}
 
 	cmd = exec.Command("go", "mod", "tidy")
 	cmd.Dir = filepath.Dir(path)
+	cmd.Stderr = &stderr
 	_, err = cmd.Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not run go mod tidy:\n%s", stderr.String())
 	}
 
 	cmd = exec.Command("go", "fmt", path)
 	cmd.Dir = filepath.Dir(path)
+	cmd.Stderr = &stderr
 	_, err = cmd.Output()
 	if err != nil {
-		return err
+		return fmt.Errorf("could not run go fmt:\n%s", stderr.String())
 	}
 
 	return nil
