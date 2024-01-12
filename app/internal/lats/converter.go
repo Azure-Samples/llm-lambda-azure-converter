@@ -56,6 +56,9 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 	m.logger.Debug().Msgf("Execution result:\n%+v", result)
 
 	if result.IsPassing {
+		if !generateTests {
+			return generatedCode, true, nil
+		}
 		finalResult, err := m.executor.Execute(*generatedCode, originalTests)
 		if err == nil && finalResult.IsPassing {
 			return generatedCode, true, nil
@@ -86,15 +89,18 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 		for len(currentNode.ChildNodes) < m.maxChildren {
 			m.logger.Debug().Msgf("Generating child node %d", len(currentNode.ChildNodes)+1)
 
-			newNode, err := m.generateNode(ctx, code, currentNode)
+			newNode, err := m.generateNode(ctx, code, currentNode, originalTests, generateTests)
 			if err != nil {
 				return nil, false, err
 			}
 
 			if newNode.Score == 1 {
+				if !generateTests {
+					return &newNode.Code, true, nil
+				}
 				finalResult, err := m.executor.Execute(newNode.Code, originalTests)
 				if err != nil && finalResult.IsPassing {
-					return generatedCode, true, nil
+					return &newNode.Code, true, nil
 				}
 				newNode.Score = finalResult.Score
 				newNode.Feedback = finalResult.Feedback
@@ -106,10 +112,13 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 				return nil, false, err
 			}
 			newNode.SelfReflection = *reflection
+			m.logger.Debug().Msgf("Generated self-reflection:\n%s", *selfReflection)
 
 			if newNode.Score >= bestNode.Score {
 				bestNode = newNode
 			}
+			m.logger.Debug().Msgf("Best score:\n%f", bestNode.Score)
+
 		}
 		currentNode = bestNode
 		currentIteration++
@@ -120,22 +129,31 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 	return &bestNode.Code, false, nil
 }
 
-func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node) (*models.Node, error) {
+func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node, originalTests []string, generateTests bool) (*models.Node, error) {
 
 	generatedCode, err := m.generator.GenerateCodeWithReflection(ctx, code, parentNode.Code, parentNode.Feedback, parentNode.SelfReflection)
 	if err != nil {
 		return nil, err
 	}
+	m.logger.Debug().Msgf("Generated code:\n%s", *generatedCode)
 
-	generatedTests, err := m.generator.GenerateTests(ctx, code, *generatedCode)
-	if err != nil {
-		return nil, err
+	var generatedTests []string
+	if generateTests {
+		generatedTests, err = m.generator.GenerateTests(ctx, code, *generatedCode)
+		if err != nil {
+			return nil, err
+		}
+		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
+	} else {
+		generatedTests = originalTests
 	}
+	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
 
 	result, err := m.executor.Execute(*generatedCode, generatedTests)
 	if err != nil {
 		return nil, err
 	}
+	m.logger.Debug().Msgf("Execution result:\n%+v", result)
 
 	newNode := &models.Node{
 		Code:           *generatedCode,

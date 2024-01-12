@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -22,9 +23,10 @@ const (
 )
 
 type ConversionRequest struct {
-	Language string   `json:"language"`
-	Code     string   `json:"code"`
-	Tests    []string `json:"tests"`
+	Language      string   `json:"language"`
+	Code          string   `json:"code"`
+	Tests         []string `json:"tests"`
+	GenerateTests bool     `json:"generateTests"`
 }
 
 type ConversionResponse struct {
@@ -39,6 +41,7 @@ type Server interface {
 type server struct {
 	converterMap map[string]models.Converter
 	port         int
+	responses    []ConversionResponse
 }
 
 func NewServer() (Server, error) {
@@ -60,7 +63,8 @@ func NewServer() (Server, error) {
 		converterMap: map[string]models.Converter{
 			string(ConversionLanguageGo): goConverter,
 		},
-		port: config.ServerPort,
+		port:      config.ServerPort,
+		responses: make([]ConversionResponse, 0),
 	}, nil
 }
 
@@ -86,23 +90,37 @@ func (s *server) convertHandler(c *gin.Context) {
 		return
 	}
 
-	code, pass, err := converter.Convert(c.Request.Context(), request.Code, request.Tests, true)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("there was an error doing the conversion: %s", err.Error())})
+	go func() {
+		code, pass, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("there was an error doing the conversion: %s", err.Error())})
+			return
+		}
+
+		response := ConversionResponse{
+			Code: *code,
+			Pass: pass,
+		}
+		s.responses = append(s.responses, response)
+	}()
+
+	c.JSON(http.StatusOK, gin.H{"message": "conversion started"})
+}
+
+func (s *server) convertResponseHandler(c *gin.Context) {
+	if len(s.responses) == 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "no responses yet"})
 		return
 	}
-
-	response := ConversionResponse{
-		Code: *code,
-		Pass: pass,
-	}
-
-	c.JSON(http.StatusOK, response)
+	nextResponse := s.responses[0]
+	s.responses = s.responses[1:]
+	c.JSON(http.StatusOK, nextResponse)
 }
 
 func (s *server) Run() error {
 	r := gin.Default()
 	r.Handle(http.MethodPost, "/convert", s.convertHandler)
+	r.Handle(http.MethodGet, "/convert/response", s.convertResponseHandler)
 
 	if s.port == 0 {
 		s.port = 8080
@@ -122,7 +140,7 @@ func configViper() (*viper.Viper, error) {
 	v.AddConfigPath("./../..")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-	
+
 	err := v.ReadInConfig()
 	if err != nil {
 		return nil, err
