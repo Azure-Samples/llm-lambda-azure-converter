@@ -2,6 +2,7 @@ package lats
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -30,95 +31,48 @@ func NewConverter(generator models.Generator, executor models.Executor, config L
 	}
 }
 
-func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*string, bool, error) {
+func generateStatistics(node models.Node, startTime time.Time) *models.ConverterStatistics {
+	return &models.ConverterStatistics{
+		TotalIterations: node.Iteration,
+		SelectedNode:    node.Id,
+		TotalTime:       time.Since(startTime),
+		Found:           node.Score == 1,
+	}
+}
 
-	generatedCode, err := m.generator.GenerateCode(ctx, code)
+func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*string, *models.ConverterStatistics, error) {
+	startTime := time.Now()
+	rootNode, err := m.generateNode(ctx, code, nil, originalTests, generateTests)
 	if err != nil {
-		return nil, false, err
-	}
-	m.logger.Debug().Msgf("Generated code:\n%s", *generatedCode)
-
-	var generatedTests []string
-	if generateTests {
-		generatedTests, err = m.generator.GenerateTests(ctx, code, *generatedCode)
-		if err != nil {
-			return nil, false, err
-		}
-		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
-	} else {
-		generatedTests = originalTests
+		return nil, nil, err
 	}
 
-	result, err := m.executor.Execute(*generatedCode, generatedTests)
-	if err != nil {
-		return nil, false, err
-	}
-	m.logger.Debug().Msgf("Execution result:\n%+v", result)
-
-	if result.IsPassing {
-		if !generateTests {
-			return generatedCode, true, nil
-		}
-		finalResult, err := m.executor.Execute(*generatedCode, originalTests)
-		if err == nil && finalResult.IsPassing {
-			return generatedCode, true, nil
-		}
-		result = finalResult
-		m.logger.Debug().Msgf("Result is passing but fails on original tests. Using original tests for feedback:\n%+v", finalResult)
+	if rootNode.Score == 1 {
+		return &rootNode.Code, generateStatistics(*rootNode, startTime), nil
 	}
 
-	selfReflection, err := m.generator.GenerateSelfReflection(ctx, *generatedCode, result.Feedback)
-	if err != nil {
-		return nil, false, err
-	}
-	m.logger.Debug().Msgf("Generated self-reflection:\n%s", *selfReflection)
-
-	currentNode := &models.Node{
-		Code:           *generatedCode,
-		Feedback:       result.Feedback,
-		SelfReflection: *selfReflection,
-		Score:          result.Score,
-		ParentNode:     nil,
-		ChildNodes:     make([]*models.Node, 0),
-	}
-	currentIteration := 1
-	bestNode := currentNode
+	currentIteration := 0
+	bestNode := rootNode
+	currentNode := rootNode
 	for currentIteration <= m.maxIterations {
 		m.logger.Debug().Msgf("Iteration %d", currentIteration)
 
 		for len(currentNode.ChildNodes) < m.maxChildren {
 			m.logger.Debug().Msgf("Generating child node %d", len(currentNode.ChildNodes)+1)
 
-			newNode, err := m.generateNode(ctx, code, currentNode, originalTests, generateTests)
+			childNode, err := m.generateNode(ctx, code, currentNode, originalTests, generateTests)
 			if err != nil {
-				return nil, false, err
+				return nil, nil, err
 			}
 
-			if newNode.Score == 1 {
-				if !generateTests {
-					return &newNode.Code, true, nil
-				}
-				finalResult, err := m.executor.Execute(newNode.Code, originalTests)
-				if err != nil && finalResult.IsPassing {
-					return &newNode.Code, true, nil
-				}
-				newNode.Score = finalResult.Score
-				newNode.Feedback = finalResult.Feedback
-				m.logger.Debug().Msgf("Result is passing but fails on original tests. Using original tests for feedback:\n%+v", finalResult)
+			if childNode.Score == 1 {
+				return &childNode.Code, generateStatistics(*childNode, startTime), nil
 			}
 
-			reflection, err := m.generator.GenerateSelfReflection(ctx, newNode.Code, newNode.Feedback)
-			if err != nil {
-				return nil, false, err
-			}
-			newNode.SelfReflection = *reflection
-			m.logger.Debug().Msgf("Generated self-reflection:\n%s", *selfReflection)
-
-			if newNode.Score >= bestNode.Score {
-				bestNode = newNode
+			if childNode.Score >= bestNode.Score {
+				bestNode = childNode
 			}
 			m.logger.Debug().Msgf("Best score:\n%f", bestNode.Score)
-
 		}
 		currentNode = bestNode
 		currentIteration++
@@ -126,44 +80,71 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 	m.logger.Debug().Msgf("Could not find a better solution after %d iterations", m.maxIterations)
 	m.logger.Debug().Msgf("Returning code with best score %f;\n%+v", bestNode.Score, bestNode.Code)
-	return &bestNode.Code, false, nil
+	return &bestNode.Code, generateStatistics(*bestNode, startTime), nil
 }
 
 func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node, originalTests []string, generateTests bool) (*models.Node, error) {
+	nodeIteration := 0
+	nodeId := "0"
+	if parentNode != nil {
+		nodeIteration = parentNode.Iteration + 1
+		nodeId = fmt.Sprintf("%s.%d", parentNode.Id, len(parentNode.ChildNodes))
+	}
 
-	generatedCode, err := m.generator.GenerateCodeWithReflection(ctx, code, parentNode.Code, parentNode.Feedback, parentNode.SelfReflection)
+	var generatedCode *string
+	var err error
+	if parentNode == nil {
+		generatedCode, err = m.generator.GenerateCode(ctx, code)
+	} else {
+		generatedCode, err = m.generator.GenerateCodeWithReflection(ctx, code, parentNode.Code, parentNode.Feedback, parentNode.SelfReflection)
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("there was an error generating code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 	}
 	m.logger.Debug().Msgf("Generated code:\n%s", *generatedCode)
 
-	var generatedTests []string
+	tests := make([]string, 0)
+	tests = append(tests, originalTests...)
 	if generateTests {
-		generatedTests, err = m.generator.GenerateTests(ctx, code, *generatedCode)
+		generatedTests, err := m.generator.GenerateTests(ctx, code, *generatedCode)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("there was an error generating tests on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 		}
+		tests = append(tests, generatedTests...)
 		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
-	} else {
-		generatedTests = originalTests
 	}
-	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
 
-	result, err := m.executor.Execute(*generatedCode, generatedTests)
+	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(tests, "\n\n"))
+
+	result, err := m.executor.Execute(*generatedCode, tests)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("there was an error running/testing code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 	}
 	m.logger.Debug().Msgf("Execution result:\n%+v", result)
 
+	var selfReflection string
+	if !result.IsPassing {
+		reflection, err := m.generator.GenerateSelfReflection(ctx, *generatedCode, result.Feedback)
+		if err != nil {
+			return nil, fmt.Errorf("there was an error generating reflection on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+		}
+		selfReflection = *reflection
+		m.logger.Debug().Msgf("Generated self-reflection:\n%s", *reflection)
+	}
+
 	newNode := &models.Node{
+		Iteration:      nodeIteration,
+		Id:             nodeId,
 		Code:           *generatedCode,
 		Feedback:       result.Feedback,
-		SelfReflection: "",
+		SelfReflection: selfReflection,
 		Score:          result.Score,
 		ParentNode:     parentNode,
 		ChildNodes:     make([]*models.Node, 0),
 	}
-	parentNode.ChildNodes = append(parentNode.ChildNodes, newNode)
+	if parentNode != nil {
+		parentNode.ChildNodes = append(parentNode.ChildNodes, newNode)
+	}
 
 	return newNode, nil
 }

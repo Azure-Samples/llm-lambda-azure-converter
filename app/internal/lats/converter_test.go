@@ -221,13 +221,13 @@ func Test_converter_Convert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			converter := tt.getConverter(t)
-			got, pass, err := converter.Convert(context.Background(), tt.args.code, tt.args.originalTests, tt.args.generateTests)
+			got, statistics, err := converter.Convert(context.Background(), tt.args.code, tt.args.originalTests, tt.args.generateTests)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("converter.Convert() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if pass != tt.wantPass {
-				t.Errorf("converter.Convert() pass = %v, want %v", pass, tt.wantPass)
+			if statistics.Found != tt.wantPass {
+				t.Errorf("converter.Convert() pass = %v, want %v", statistics, tt.wantPass)
 			}
 			if len(*got) == 0 {
 				t.Errorf("converter.Convert() didn't return any solution got = %v", got)

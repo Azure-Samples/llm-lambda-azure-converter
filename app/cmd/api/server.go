@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/lats"
 	"github.com/msft-latam-devsquad/lambda-to-azure-converter/cli/internal/models"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -30,8 +33,9 @@ type ConversionRequest struct {
 }
 
 type ConversionResponse struct {
-	Code string `json:"code"`
-	Pass bool   `json:"pass"`
+	Code  string                     `json:"code"`
+	Info  models.ConverterStatistics `json:"statistics"`
+	Error string                     `json:"error"`
 }
 
 type Server interface {
@@ -42,11 +46,15 @@ type server struct {
 	converterMap map[string]models.Converter
 	port         int
 	responses    []ConversionResponse
+	logger       zerolog.Logger
 }
 
 func NewServer() (Server, error) {
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		With().Timestamp().Caller().Logger()
+
 	v, err := configViper()
-	if err != nil {
+	if err != nil {		
 		return nil, fmt.Errorf("error loading the config file: %v", err)
 	}
 	config := lats.NewLatsConfig(*v)
@@ -65,6 +73,7 @@ func NewServer() (Server, error) {
 		},
 		port:      config.ServerPort,
 		responses: make([]ConversionResponse, 0),
+		logger:    logger,
 	}, nil
 }
 
@@ -91,16 +100,21 @@ func (s *server) convertHandler(c *gin.Context) {
 	}
 
 	go func() {
-		code, pass, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
+		code, info, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
+		var response ConversionResponse
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("there was an error doing the conversion: %s", err.Error())})
-			return
+			errorMsg := fmt.Sprintf("there was an error converting the code: %s", err.Error())
+			response = ConversionResponse{
+				Error: errorMsg,
+			}
+			s.logger.Error().Msg(errorMsg)
+		} else {
+			response = ConversionResponse{
+				Code: *code,
+				Info: *info,
+			}
 		}
 
-		response := ConversionResponse{
-			Code: *code,
-			Pass: pass,
-		}
 		s.responses = append(s.responses, response)
 	}()
 
