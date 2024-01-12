@@ -1,7 +1,6 @@
 For example:
 
-Given the following code:
-
+Here is the Go code for the AWS Lambda function: 
 ```go
 type Request struct {
 	InitCount int `json:"initCount"`
@@ -21,10 +20,38 @@ func main() {
 }
 ```
 
-using the following endpoint:
-/handle
+Here is the Go code for the GinGonic http server:
+```go
+type Request struct {
+	InitCount int `json:"initCount"`
+}
+
+type Response struct {
+	Count int `json:"count"`
+}
+
+func handler(ctx *gin.Context) {
+	var request Request
+	err := ctx.Bind(&request)
+	if err != nil {
+		errorMsg := fmt.Sprintf("error on reading request body: %v\n", err.Error())
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": errorMsg})
+		return
+	}
+
+	request.InitCount++
+	ctx.JSON(http.StatusOK, &Response{Count: request.InitCount})
+}
+
+func main() {
+	r := gin.Default()
+	r.Handle(http.MethodPost, "/handler", handler)
+	log.Fatal(r.Run())
+}
+```
 
 the unit tests would be:
+```go
 func TestHandler(t *testing.T) {
     router := gin.Default()
     router.POST("/handle", HandleRequest)
@@ -45,3 +72,4 @@ func TestHandler(t *testing.T) {
     assert.Equal(t, tt.expectedBody, w.Body.String())
 
 }
+```
