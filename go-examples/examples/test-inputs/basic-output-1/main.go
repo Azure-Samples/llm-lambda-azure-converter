@@ -17,7 +17,7 @@ type Response struct {
 	Message string `json:"message"`
 }
 
-func saveHandler(c *gin.Context) {
+func HandleRequest(c *gin.Context) {
 	var req SaveRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -37,6 +37,6 @@ func saveHandler(c *gin.Context) {
 
 func main() {
 	r := gin.Default()
-	r.POST("/save", saveHandler)
+	r.POST("/save", HandleRequest)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
