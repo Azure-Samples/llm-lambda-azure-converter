@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,9 +33,16 @@ type ConversionRequest struct {
 }
 
 type ConversionResponse struct {
-	Code  string                     `json:"code"`
-	Info  models.ConverterStatistics `json:"statistics"`
-	Error string                     `json:"error"`
+	Code  string         `json:"code"`
+	Info  ConversionInfo `json:"statistics"`
+	Error string         `json:"error"`
+}
+
+type ConversionInfo struct {
+	TotalIterations int    `json:"totalIterations"`
+	SelectedNode    string `json:"selectedNode"`
+	TotalTime       string `json:"totalTime"`
+	Found           bool   `json:"found"`
 }
 
 type Server interface {
@@ -54,7 +61,7 @@ func NewServer() (Server, error) {
 		With().Timestamp().Caller().Logger()
 
 	v, err := configViper()
-	if err != nil {		
+	if err != nil {
 		return nil, fmt.Errorf("error loading the config file: %v", err)
 	}
 	config := lats.NewLatsConfig(*v)
@@ -111,7 +118,12 @@ func (s *server) convertHandler(c *gin.Context) {
 		} else {
 			response = ConversionResponse{
 				Code: *code,
-				Info: *info,
+				Info: ConversionInfo{
+					TotalIterations: info.TotalIterations,
+					SelectedNode:    info.SelectedNode,
+					TotalTime:       info.TotalTime.String(),
+					Found:           info.Found,
+				},
 			}
 		}
 
