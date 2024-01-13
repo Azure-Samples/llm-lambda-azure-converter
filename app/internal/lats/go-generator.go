@@ -79,12 +79,12 @@ func (g *goGenerator) GenerateCodeWithReflection(ctx context.Context, code strin
 	fmt.Println(systemInstruction)
 
 	messages := []models.ChatMessage{
-		{Type: models.SystemMessage, Content: systemInstruction},
-		{Type: models.UserMessage, Content: g.goReflectionFewShotAdd},
+		{Type: models.SystemMessage, Content: systemInstruction + "\n\n" + g.goReflectionFewShotAdd},
+		{Type: models.UserMessage, Content: code},
 		{Type: models.AssistantMessage, Content: fmt.Sprintf("```go\n%s\n```", previousResult)},
 		{Type: models.UserMessage, Content: fmt.Sprintf("[unit test results from previous impl]:\n%s\n\n[reflection on previous impl]:", feedback)},
 		{Type: models.AssistantMessage, Content: selfReflection},
-		{Type: models.UserMessage, Content: fmt.Sprintf("[improved impl]:\n%s", code)},
+		{Type: models.UserMessage, Content: fmt.Sprintf("Try to convert this code again:\n%s", code)},
 	}
 
 	return g.llm.Chat(ctx, messages)
