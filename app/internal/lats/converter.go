@@ -31,8 +31,10 @@ func NewConverter(generator models.Generator, executor models.Executor, config L
 	}
 }
 
-func generateStatistics(node models.Node, startTime time.Time) *models.ConverterStatistics {
-	return &models.ConverterStatistics{
+func buildResponse(node models.Node, startTime time.Time) *models.ConverterResponse {
+	return &models.ConverterResponse{
+		Code:            node.Code,
+		Tests:           node.Tests,
 		TotalIterations: node.Iteration,
 		SelectedNode:    node.Id,
 		TotalTime:       time.Since(startTime),
@@ -40,15 +42,15 @@ func generateStatistics(node models.Node, startTime time.Time) *models.Converter
 	}
 }
 
-func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*string, *models.ConverterStatistics, error) {
+func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*models.ConverterResponse, error) {
 	startTime := time.Now()
 	rootNode, err := m.generateNode(ctx, code, nil, originalTests, generateTests)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if rootNode.Score == 1 {
-		return &rootNode.Code, generateStatistics(*rootNode, startTime), nil
+		return buildResponse(*rootNode, startTime), nil
 	}
 
 	currentIteration := 0
@@ -62,11 +64,11 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 			childNode, err := m.generateNode(ctx, code, currentNode, originalTests, generateTests)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			if childNode.Score == 1 {
-				return &childNode.Code, generateStatistics(*childNode, startTime), nil
+				return buildResponse(*childNode, startTime), nil
 			}
 
 			if childNode.Score >= bestNode.Score {
@@ -80,7 +82,7 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 	m.logger.Debug().Msgf("Could not find a better solution after %d iterations", m.maxIterations)
 	m.logger.Debug().Msgf("Returning code with best score %f;\n%+v", bestNode.Score, bestNode.Code)
-	return &bestNode.Code, generateStatistics(*bestNode, startTime), nil
+	return buildResponse(*bestNode, startTime), nil
 }
 
 func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node, originalTests []string, generateTests bool) (*models.Node, error) {
@@ -137,6 +139,7 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 
 		if strings.Contains(strings.ToLower(*implementationIsGood), "yes") {
 			m.logger.Debug().Msgf("Running execution again without generated tests")
+			tests = originalTests
 			result, err = m.executor.Execute(*generatedCode, originalTests)
 			if err != nil {
 				return nil, fmt.Errorf("there was an error running/testing code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
@@ -150,7 +153,7 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 				}
 				selfReflection = *reflection
 				m.logger.Debug().Msgf("Second generated self-reflection:\n%s", *reflection)
-			}		
+			}
 		}
 	}
 
@@ -158,6 +161,7 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		Iteration:      nodeIteration,
 		Id:             nodeId,
 		Code:           *generatedCode,
+		Tests:          tests,
 		Feedback:       result.Feedback,
 		SelfReflection: selfReflection,
 		Score:          result.Score,

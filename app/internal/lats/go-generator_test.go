@@ -161,6 +161,8 @@ package main
 
 const feedback = "cmd\\example\\main.go:41:24: undefined: MyResponse"
 
+const reflection = "The implementation is incorrect because it does not account for the possibility of receiving an unexpected EOF (End Of File) error when parsing a malformed JSON body, as indicated by the failed unit test (\"Invalid JSON\"). This could happen if the incoming JSON is not properly closed, leading to an incomplete JSON payload. The error message returned by the implementation must match the actual error returned by the Go JSON parser in such cases, which is \"unexpected EOF\" as opposed to the expected error message \"invalid character 'I' looking for beginning of object key string\". The unit tests are designed to check for accurate error messages corresponding to different parsing errors, and the implementation must return the correct error message to pass the test."
+
 func generateGoGenerator() (models.Generator, error) {
 	v := viper.GetViper()
 	v.SetConfigName("config")
@@ -336,9 +338,9 @@ func Test_goGenerator_GenerateTests(t *testing.T) {
 	}
 }
 
-func Test_goGenerator_QueryFuncSignature(t *testing.T) {
+func Test_goGenerator_QueryImplementationIsGood(t *testing.T) {
 	type args struct {
-		code string
+		reflection string
 	}
 	tests := []struct {
 		name    string
@@ -347,11 +349,11 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Test QueryFuncSignature",
+			name: "Test QueryImplementationIsGood",
 			args: args{
-				code: generatedCode,
+				reflection: reflection,
 			},
-			want:    "func SaveHandler(c *gin.Context)",
+			want:    "no",
 			wantErr: false,
 		},
 	}
@@ -362,13 +364,13 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 				t.Errorf("error creating goGenerator: %v", err)
 				return
 			}
-			got, err := generator.QueryImplementationIsGood(context.Background(), tt.args.code)
+			got, err := generator.QueryImplementationIsGood(context.Background(), tt.args.reflection)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("goGenerator.QueryFuncSignature() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("goGenerator.QueryImplementationIsGood() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !strings.Contains(*got, tt.want) {
-				t.Errorf("goGenerator.QueryFuncSignature() = %v, want %v", got, tt.want)
+				t.Errorf("goGenerator.QueryImplementationIsGood() = %v, want %v", got, tt.want)
 			}
 		})
 	}

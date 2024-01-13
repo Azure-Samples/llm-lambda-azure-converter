@@ -34,6 +34,7 @@ type ConversionRequest struct {
 
 type ConversionResponse struct {
 	Code  string         `json:"code"`
+	Tests []string       `json:"tests"`
 	Info  ConversionInfo `json:"statistics"`
 	Error string         `json:"error"`
 }
@@ -107,7 +108,7 @@ func (s *server) convertHandler(c *gin.Context) {
 	}
 
 	go func() {
-		code, info, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
+		resp, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
 		var response ConversionResponse
 		if err != nil {
 			errorMsg := fmt.Sprintf("there was an error converting the code: %s", err.Error())
@@ -117,12 +118,13 @@ func (s *server) convertHandler(c *gin.Context) {
 			s.logger.Error().Msg(errorMsg)
 		} else {
 			response = ConversionResponse{
-				Code: *code,
+				Code:  *&resp.Code,
+				Tests: resp.Tests,
 				Info: ConversionInfo{
-					TotalIterations: info.TotalIterations,
-					SelectedNode:    info.SelectedNode,
-					TotalTime:       info.TotalTime.String(),
-					Found:           info.Found,
+					TotalIterations: resp.TotalIterations,
+					SelectedNode:    resp.SelectedNode,
+					TotalTime:       resp.TotalTime.String(),
+					Found:           resp.Found,
 				},
 			}
 		}

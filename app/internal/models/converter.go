@@ -6,10 +6,12 @@ import (
 )
 
 type Converter interface {
-	Convert(ctx context.Context, code string, tests []string, generateTests bool) (*string, *ConverterStatistics, error)
+	Convert(ctx context.Context, code string, tests []string, generateTests bool) (*ConverterResponse, error)
 }
 
-type ConverterStatistics struct {
+type ConverterResponse struct {
+	Code            string
+	Tests           []string
 	TotalIterations int
 	SelectedNode    string
 	TotalTime       time.Duration

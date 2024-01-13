@@ -70,22 +70,22 @@ var convertCmd = &cobra.Command{
 			tests = append(tests, test)
 		}
 
-		generatedCode, info, err := converter.Convert(context.Background(), code, tests, generateTests)
+		response, err := converter.Convert(context.Background(), code, tests, generateTests)
 
 		if err != nil {
 			return fmt.Errorf("there was an error converting the code: %s", err.Error())
 
 		}
 
-		if info.Found {
-			fmt.Printf("Found a solution in %d iterations\n", info.TotalIterations)
+		if response.Found {
+			fmt.Printf("Found a solution in %d iterations\n", response.TotalIterations)
 		} else {
-			fmt.Printf("Couldn't find a solution after %d iterations\n", info.TotalIterations)
+			fmt.Printf("Couldn't find a solution after %d iterations\n", response.TotalIterations)
 		}
-		fmt.Printf("Total time: %s\n", info.TotalTime.String())
-		fmt.Printf("Showing code for node %s\n", info.SelectedNode)
+		fmt.Printf("Total time: %s\n", response.TotalTime.String())
+		fmt.Printf("Showing code for node %s\n", response.SelectedNode)
 		fmt.Println("")
-		fmt.Println(*generatedCode)
+		fmt.Println(*&response.Code)
 
 		return nil
 	},
