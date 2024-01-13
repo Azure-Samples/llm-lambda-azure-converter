@@ -38,12 +38,14 @@ func NewGoExecutor() models.Executor {
 }
 
 func createTempProject(targetDir string) error {
+	var stderr bytes.Buffer
 	cmd := exec.Command("go", "mod", "init", "go-lats")
 	cmd.Dir = targetDir
+	cmd.Stderr = &stderr
 	_, err := cmd.Output()
 
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create temp project:\n%s", stderr.String())
 	}
 
 	return nil
@@ -111,13 +113,15 @@ func formatFile(path string) error {
 }
 
 func buildProject(path string, filename string) ([]string, error) {
+	var stderr bytes.Buffer
 	cmd := exec.Command("go", "build", "./...")
 	cmd.Dir = path
-	output, err := cmd.Output()
+	cmd.Stderr = &stderr
+	_, err := cmd.Output()
+	compileErrors := make([]string, 0)
 	if err != nil {
-		return nil, err
+		compileErrors = grabCompileErrs(stderr.String(), filename)
 	}
-	compileErrors := grabCompileErrs(string(output), filename)
 
 	return compileErrors, nil
 }

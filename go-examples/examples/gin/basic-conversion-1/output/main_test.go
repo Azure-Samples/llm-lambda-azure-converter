@@ -27,7 +27,7 @@ func TestHandleRequest(t *testing.T) {
 				return httptest.NewRequest(http.MethodPost, "/handle", strings.NewReader(req))
 			},
 			expectedCode: http.StatusOK,
-			expectedBody: `{"message":"Hello !"}`,
+			expectedBody: `{"message":"Hello Ana!"}`,
 		},
 	}
 	for _, tt := range tests {

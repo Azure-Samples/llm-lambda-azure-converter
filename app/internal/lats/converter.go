@@ -110,11 +110,9 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		if err != nil {
 			return nil, fmt.Errorf("there was an error generating tests on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 		}
-		tests = append(tests, generatedTests...)
 		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
+		tests = append(tests, generatedTests...)
 	}
-
-	m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(tests, "\n\n"))
 
 	result, err := m.executor.Execute(*generatedCode, tests)
 	if err != nil {
