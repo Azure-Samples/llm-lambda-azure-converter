@@ -17,7 +17,8 @@ const (
 	goSelfReflectionChatInstruction  = "You are a Go programming assistant. You will be given a function implementation and a series of unit tests. Your goal is to write a few sentences to explain why your implementation is wrong as indicated by the tests. You will need this as a hint when you try again later. Only provide the few sentence description in your answer, not the implementation."
 	goTestGenerationChatInstruction  = "You are a Go programming assistant, an AI coding assistant that can write unique, diverse, and intuitive unit tests for functions. You will be given a Go AWS Lambda function, that is being converted to a GinGonic http server. Your job is to generate a comprehensive set of tests to ensure its functionality remains consistent. The tests should cover all major functionality of the function, including error handling, input validation, and expected output."
 	goTestGenerationHumanInstruction = "Here is the Go code for the AWS Lambda function: \n%s\n\nHere is the Go code for the GinGonic http server:\n%s\n"
-	goSignatureChatInstruction       = "You are an AI Go assistant. You will be given a function implementation, and from it you will extract the handler function signature."
+	goYesNoChatInstruction           = "You are an AI Go assistant. You will be given a reflection about an implementation, and from it you will answer a question just with 'yes' or 'no'. Do not answer with any different words, just either 'yes' or 'no'."
+	goImplementationGoodChatInstruction = "Given the following reflection: '%s' is the implementation good and the issues found are only in the tests?"
 	goCodeBlockInstruction           = "Use a Go code block to write your response. For example:\n```go\nfunc main() {\n    fmt.Println(\"Hello, World!\")\n}\n```"
 
 	testFunctionPattern = "(?s)```go(.*?)```"
@@ -117,10 +118,10 @@ func (g *goGenerator) GenerateTests(ctx context.Context, code string, generatedC
 	return matches, nil
 }
 
-func (g *goGenerator) QueryFuncSignature(ctx context.Context, code string) (*string, error) {
+func (g *goGenerator) QueryImplementationIsGood(ctx context.Context, reflection string) (*string, error) {
 	messages := []models.ChatMessage{
-		{Type: models.SystemMessage, Content: goSignatureChatInstruction},
-		{Type: models.UserMessage, Content: code},
+		{Type: models.SystemMessage, Content: goYesNoChatInstruction},
+		{Type: models.UserMessage, Content: fmt.Sprintf(goImplementationGoodChatInstruction, reflection)},
 	}
 
 	return g.llm.Chat(ctx, messages)

@@ -362,7 +362,7 @@ func Test_goGenerator_QueryFuncSignature(t *testing.T) {
 				t.Errorf("error creating goGenerator: %v", err)
 				return
 			}
-			got, err := generator.QueryFuncSignature(context.Background(), tt.args.code)
+			got, err := generator.QueryImplementationIsGood(context.Background(), tt.args.code)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("goGenerator.QueryFuncSignature() error = %v, wantErr %v", err, tt.wantErr)
 				return

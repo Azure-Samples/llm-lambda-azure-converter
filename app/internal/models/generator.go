@@ -7,5 +7,5 @@ type Generator interface {
 	GenerateCodeWithReflection(ctx context.Context, code string, previousResult string, feedback string, selfReflection string) (*string, error)
 	GenerateTests(ctx context.Context, code string, generatedCode string) ([]string, error)
 	GenerateSelfReflection(ctx context.Context, code string, feedback string) (*string, error)
-	QueryFuncSignature(ctx context.Context, code string) (*string, error)
+	QueryImplementationIsGood(ctx context.Context, reflection string) (*string, error)
 }

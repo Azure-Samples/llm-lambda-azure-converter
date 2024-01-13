@@ -128,6 +128,30 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		}
 		selfReflection = *reflection
 		m.logger.Debug().Msgf("Generated self-reflection:\n%s", *reflection)
+
+		implementationIsGood, err := m.generator.QueryImplementationIsGood(ctx, *reflection)
+		if err != nil {
+			return nil, fmt.Errorf("there was an error querying the reflection on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+		}
+		m.logger.Debug().Msgf("The implementation is good, problem is in the tests:\n%s", *implementationIsGood)
+
+		if strings.Contains(strings.ToLower(*implementationIsGood), "yes") {
+			m.logger.Debug().Msgf("Running execution again without generated tests")
+			result, err = m.executor.Execute(*generatedCode, originalTests)
+			if err != nil {
+				return nil, fmt.Errorf("there was an error running/testing code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+			}
+			m.logger.Debug().Msgf("Second execution result:\n%+v", result)
+
+			if !result.IsPassing {
+				reflection, err := m.generator.GenerateSelfReflection(ctx, *generatedCode, result.Feedback)
+				if err != nil {
+					return nil, fmt.Errorf("there was an error generating reflection on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+				}
+				selfReflection = *reflection
+				m.logger.Debug().Msgf("Second generated self-reflection:\n%s", *reflection)
+			}		
+		}
 	}
 
 	newNode := &models.Node{
