@@ -118,7 +118,7 @@ func (s *server) convertHandler(c *gin.Context) {
 			s.logger.Error().Msg(errorMsg)
 		} else {
 			response = ConversionResponse{
-				Code:  *&resp.Code,
+				Code:  resp.Code,
 				Tests: resp.Tests,
 				Info: ConversionInfo{
 					TotalIterations: resp.TotalIterations,
