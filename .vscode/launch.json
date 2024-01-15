@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "cwd": "./app",
-            "program": "./app/cmd/api/",
+            "program": "./app/cmd/api/"
         },
         {
             "name": "Run CLI version",
@@ -35,9 +35,16 @@
                 "--code-path",
                 "../go-examples/examples/gin/basic-conversion-1/input/main.go",
                 "--test-path",
-                "../go-examples/examples/gin/basic-conversion-1/output/main_test.go",
+                "../go-examples/examples/gin/basic-conversion-1/output/main_test.go"
             ]
+        },
+        {
+            "name": "Attach to Java Functions",
+            "type": "java",
+            "request": "attach",
+            "hostName": "127.0.0.1",
+            "port": 5005,
+            "preLaunchTask": "func: host start"
         }
-
     ]
 }

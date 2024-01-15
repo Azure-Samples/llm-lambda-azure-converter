@@ -3,3 +3,5 @@
 notebook/temp/
 go.work.sum
 app/config.yaml
+/.vscode/settings.json
+/.vscode/tasks.json
