@@ -19,7 +19,7 @@ type Event struct {
 
 func HandleRequest(ctx *gin.Context) {
 	var event Event
-	err := ctx.Bind(&event)
+	err := ctx.ShouldBindJSON(&event)
 	if err != nil {
 		errorMsg := fmt.Sprintf("error on reading request body: %v\n", err.Error())
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": errorMsg})
