@@ -504,4 +504,6 @@ This method still needs to be tested against real user code, and the prompts can
 
 Now after finishing the entrypoint transformation, we'll need to think about next steps, for step 2 we should be able to use a similar approach using different prompts, instead of converting the code to a Gin Web server we'll need to ask it to do a conversion that uses interface implementations instead of AWS ones, and for step 3, we could try to infer the information from the documentation, or give it to it ourselves, and with the information, ask it to create the required json files to run the Azure Function.
 
+If you want to check out the code you can find it [here](https://github.com/Azure-Samples/llm-lambda-azure-converter).
+
 Hope you enjoyed this implementation approach, love to here your comments. Until the next one!
