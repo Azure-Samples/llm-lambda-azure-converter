@@ -14,3 +14,5 @@ Developed using as reference the LATS implementation by Andy Zhou, Kai Yan, Mich
       archivePrefix={arXiv},
       primaryClass={cs.AI}
 }
+
+To understand the implementation please give a look to the following [article](./article/Article.md).
