@@ -3,6 +3,6 @@
 notebook/temp/
 go.work.sum
 app/config.yaml
-/.vscode/settings.json
-/.vscode/tasks.json
+!/.vscode/launch.json
+/.vscode/
 /notebook/dataset.jsonl
