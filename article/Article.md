@@ -1,24 +1,28 @@
 # Converting an AWS Lambda into an Azure Function using LLMs in Go
 
-As part of a migration I was given the task to convert a big number of AWS Lambdas into Azure Functions, and my boss had a great idea, let's try to do it using LLMs and Chat-GPT.
+The goal of this post is to show some strategies that can be used to convert AWS Lambdas into Azure Functions using LLMs.
 
-So I went for it, but what would it take to convert a Lambda Function into an Azure Function?
+> **Disclaimer:** This article is an experimental implementation of using LLMs for converting AWS Lambda functions into Azure Functions. It is not intended as a defined guide for the process and does not guarantee successful conversion. The outcome depends on the specific code you intend to convert and the LLM that you are using.
 
-There are a few things we need to take into account with Lambda Functions:
+What would it take to convert a Lambda Function into an Azure Function?
 
-1. Lambda functions don't use bindings, so we won't use the binding format for inputs or the outputs.
+There are a few things that we need to take into account with Lambda Functions:
 
-2. Input bindings in the entrypoint are received in the entry handler as a json format object.
+1. Lambda functions don't use bindings.
+
+2. Input objects in the entrypoint are received in the entry handler as a json format object.
 
 3. As output bindings don't exist, all output in Lambdas are handled by using the AWS SDKs.
 
-So what do we need to do the conversion? We can separate the process in these steps:
+So what do we need to do the conversion? Let's separate the process in the following steps:
 
-1. Converting the entrypoint to Azure Function format.
+1. Converting the Lambda entrypoint to the Azure Function format.
+
 2. Converting any libraries using the AWS SDKs to use an interface instead that can connect either to AWS or Azure. Why? well if we are doing a migration, we may want to keep using the AWS services until the data or queues are fully migrated.
-3. Finally we'll need our Azure Function configuration files, like host.json, local.settings.json, and function.json, to be able to run our function. We'll need to generate this files by adding some info that the lambda is not giving us like if the input bindings are for an http input or a queue.
 
-Let's talk about the first step, let's start by looking at a Lambda.
+3. Finally, Azure Function configuration files, to be able to run the function, like host.json, local.settings.json, and function.json need to be generated. These files require some information that the lambda currently doesn't have, as it's defined from configuration, like if the input bindings are for an http input or a queue, so the information must be provided.
+
+In this article, we'll review the first step process, by using prompt engineering techniques. Let's start by looking at a Lambda.
 
 ## How does a Lambda look like?
 
@@ -55,7 +59,7 @@ func main() {
 }
 ```
 
-In this example we are showing a simple hello world Lambda we can see here it includes some interesting features like:
+In this example you can see a simple hello world Lambda. It includes some interesting features like:
 
 - A package `github.com/aws/aws-lambda-go/lambda`
 - A main function starting the lambda by calling `lambda.Start(HandleRequest)`
@@ -82,7 +86,7 @@ So we need to convert this entrypoint to an Azure Function Format.
 
 We have Go Lambdas and we want to convert them to Go Azure Functions. Azure Functions, as of today, doesn't have a language-specific handler fo Go, so, we need to use a custom handler to do the conversion instead.
 
-Custom handlers are lightweight web servers that receive events from the Functions host. The only thing we need is to implement an HTTP server.
+Custom handlers are lightweight web servers that receive events from the Functions host. The only thing we need to make it work, is to implement an HTTP server in Go.
 
 Personally I like the Gin Web Framework so let's do an example using it. This would be, more or less, the code we would like to get after the conversion:
 
@@ -139,25 +143,25 @@ So now how do we teach an LLM to do this conversion?
 
 ## The attempts
 
-You've probably have heard by now about Prompt Engineering, Prompt engineering is the process to write the best instructions possible to the LLMs so we are able to get the result we are looking for. It includes several techniques, and we are going to need some of these techniques to be able to do the conversion. There's a really nice guide for some of these techniques [here](https://www.promptingguide.ai/).
+You've probably have heard by now about Prompt Engineering, Prompt engineering is the process to write the best instructions possible to the LLMs so we are able to get the result we are looking for. It includes several techniques, and we are going to need some of these techniques to be able to do the conversion. You can learn more about these techniques [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/advanced-prompt-engineering?pivots=programming-language-chat-completions).
 
-There are a few techniques using prompt engineering that didn't work for me, as I got a lot of hallucinations and wrong code, but were nice tries so let's just list them here.
+There are a few techniques using prompt engineering that didn't work well for the case, as we got hallucinations and wrong code, but they can be good alternatives depending on the case. Let's just list them here.
 
 ### Chain-of-Thought (CoT) Prompt
 
-This technique is about guiding the LLMs by giving them a step by step guide of the process it needs to follow, this is a very good option to help the LLMs solve mathematical equations and complex problems, but I found, that in my case the CoT was not giving me the expected results, I tried to tell the LLM how to do the conversion, but most of the times I was getting an answer telling me that the code couldn't be converted.
+This technique is about guiding the LLMs by giving them a step by step guide of the process it needs to follow, this is a very good option to help the LLMs solve mathematical equations and complex problems, but, for this case, the CoT was not giving us the expected results. Most of the times it was returning that the code couldn't be converted.
 
-So it works... but for code we need more.
+So although it is a good approach, we can use CoT, for the prompts but we need to enrich the process with more strategies.
 
 ### Few shots using an example selector
 
-This is a really nice technique that selects the examples using a vector database and embeddings to select the most relevant examples to do the conversion. I didn't had a big number of examples but I had enough to start testing it out. The result was unexpected, when I added just one example to the prompt I got a pretty good conversion, maybe with some issues with packages like not doing the required imports, and once even hallucinating about an azure function package that doesn't exist but with the base idea. But, when I started giving him more examples, instead of improving the model, it started returning that it wasn't able to do the conversion.
+This is a really nice technique that selects the examples using a vector database and embeddings to select the most relevant examples to do the conversion. I didn't had a big number of examples but I had enough to start testing it out. The result was unexpected, when I added just one example to the prompt I got a pretty good conversion, maybe with some issues with packages like not doing the required imports, and once even hallucinating about an azure function package that doesn't exist, but with the base idea. Strangely, when given more examples, instead of improving the model, it started returning that it wasn't able to do the conversion.
 
 Again we needed something better.
 
 ### Fine tunning
 
-So this is a really nice approach, not prompt engineering but instead re-training the model specifically for the task. The problem was that it requires a lot of examples of input/output pairs and I didn't had these amount of examples, also, it can be pretty expensive. So if you are trying something similar and after testing with all the Prompt Engineering options you aren't able to get the results you want, give it a try, but, be aware of the possible costs from training, deployment and queries that come with it.
+So this is a really nice approach, not prompt engineering but instead re-training the model specifically for the task. The problem was that it requires a lot of examples of input/output pairs and I didn't had this amount of examples, also, it can be pretty expensive. So if you are trying something similar and after testing with all the Prompt Engineering options you aren't able to get the results you want, give it a try, but, be aware of the possible costs from training, deployment and queries that come with it.
 
 This is a good option, but I wanted to find the best way to do it without having to retrain the LLM. So what did work?
 
