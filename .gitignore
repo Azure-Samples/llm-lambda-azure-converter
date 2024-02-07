@@ -1,0 +1,8 @@
+.conda
+.env
+notebook/temp/
+go.work.sum
+app/config.yaml
+!/.vscode/launch.json
+/.vscode/
+/notebook/dataset.jsonl

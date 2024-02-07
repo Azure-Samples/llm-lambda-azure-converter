@@ -1,0 +1,11 @@
+azure:
+  openai:
+    apikey: "Your API Key"
+    endpoint: "Your Azure OpenAI Endpoint"
+    apiversion: "2023-12-01"
+    deployment: "GPT-4"
+converter:
+  maxIterations: 3
+  maxChildren: 3
+server:
+  port: 8080

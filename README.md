@@ -1,57 +1,47 @@
-# Project Name
+# AWS Lambda To Azure Function Converter
 
-(short, 1-3 sentenced, description of the project)
+The objective of this project is to create a cli app that is able to convert AWS Lambda Functions to Azure Functions, with the help of Azure Open AI.
 
 ## Features
 
-This project framework provides the following features:
+This project sample provides the following features:
 
-* Feature 1
-* Feature 2
-* ...
+* Running converter from Lambda to Azure Functions
+* Lambda to Azure Function examples
 
 ## Getting Started
 
 ### Prerequisites
 
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
+- Go 1.20 or bigger
+- An Azure OpenAI with a GPT-4 deployment 
 
 ### Quickstart
-(Add steps to get up and running quickly)
 
-1. git clone [repository clone url]
-2. cd [repository name]
-3. ...
+To start running the Jupyter notebook, follow the steps in the [jupyter notebook for vscode guide](https://code.visualstudio.com/docs/datascience/jupyter-notebooks) to setup your conda environment in VS Code.
 
+Using [example config](app/example-config.yaml) as reference create a `app/config.yaml` with your api key and endpoint.
 
-## Demo
+Type `Ctrl+Shift+D` or go to the `Run and Debug` tab and select `Run cli convert`.
 
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
+Now you should be able to see the demo running.
 
 ## Resources
 
-(Any additional resources or related projects)
+Developed using as reference the LATS implementation by Andy Zhou, Kai Yan, Michal Shlapentokh-Rothman, Haohan Wang and Yu-Xiong Wang
 
-- Link to supporting information
-- Link to similar sample
-- ...
+@misc{zhou2023language,
+      title={Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models}, 
+      author={Andy Zhou and Kai Yan and Michal Shlapentokh-Rothman and Haohan Wang and Yu-Xiong Wang},
+      year={2023},
+      eprint={2310.04406},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI}
+}
+
+To understand the implementation please give a look to the following [article](./article/Article.md).
+
+
+
+
+
