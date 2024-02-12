@@ -2,7 +2,31 @@
 
 The objective of this project is to create a cli app that is able to convert AWS Lambda Functions to Azure Functions, with the help of Azure Open AI.
 
-To start running the Jupyter notebook, follow this [guide](https://code.visualstudio.com/docs/datascience/jupyter-notebooks) to setup your conda environment in VS Code.
+## Features
+
+This project sample provides the following features:
+
+* Running converter from Lambda to Azure Functions
+* Lambda to Azure Function examples
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.20 or bigger
+- An Azure OpenAI with a GPT-4 deployment 
+
+### Quickstart
+
+To start running the Jupyter notebook, follow the steps in the [jupyter notebook for vscode guide](https://code.visualstudio.com/docs/datascience/jupyter-notebooks) to setup your conda environment in VS Code.
+
+Using [example config](app/example-config.yaml) as reference create a `app/config.yaml` with your api key and endpoint.
+
+Type `Ctrl+Shift+D` or go to the `Run and Debug` tab and select `Run cli convert`.
+
+Now you should be able to see the demo running.
+
+## Resources
 
 Developed using as reference the LATS implementation by Andy Zhou, Kai Yan, Michal Shlapentokh-Rothman, Haohan Wang and Yu-Xiong Wang
 
@@ -16,3 +40,8 @@ Developed using as reference the LATS implementation by Andy Zhou, Kai Yan, Mich
 }
 
 To understand the implementation please give a look to the following [article](./article/Article.md).
+
+
+
+
+
