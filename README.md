@@ -26,20 +26,19 @@ Type `Ctrl+Shift+D` or go to the `Run and Debug` tab and select `Run cli convert
 
 Now you should be able to see the demo running.
 
-## Resources
+## How it works 
 
-Developed using as reference the LATS implementation by Andy Zhou, Kai Yan, Michal Shlapentokh-Rothman, Haohan Wang and Yu-Xiong Wang
+To understand the implementation please give a look to the following [article](https://techcommunity.microsoft.com/t5/azure-architecture-blog/converting-an-aws-lambda-function-in-go-into-an-azure-function/ba-p/4054916).
 
-@misc{zhou2023language,
-      title={Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models}, 
-      author={Andy Zhou and Kai Yan and Michal Shlapentokh-Rothman and Haohan Wang and Yu-Xiong Wang},
-      year={2023},
-      eprint={2310.04406},
-      archivePrefix={arXiv},
-      primaryClass={cs.AI}
-}
+## References
 
-To understand the implementation please give a look to the following [article](./article/Article.md).
+Developed using as reference the LATS implementation [[1]](#1).
+
+<a id="1">[1]</a>
+Andy Zhou and Kai Yan and Michal Shlapentokh-Rothman and Haohan Wang and Yu-Xiong Wang (2023)
+Language Agent Tree Search Unifies Reasoning Acting and Planning in Language Models
+https://arxiv.org/abs/2310.04406v2
+
 
 
 
