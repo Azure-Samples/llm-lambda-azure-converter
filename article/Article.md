@@ -1,32 +1,32 @@
 # Converting an AWS Lambda into an Azure Function using LLMs in Go
 
-The goal of this post is to show some strategies that can be used to convert AWS Lambdas into Azure Functions using LLMs.
+The goal of this post is to show some strategies that can be used to convert AWS Lambda Functions into Azure Functions using LLMs.
 
-> **Disclaimer:** This article is an experimental implementation of using LLMs for converting AWS Lambda functions into Azure Functions. It is not intended as a defined guide for the process and does not guarantee successful conversion. The outcome depends on the specific code you intend to convert and the LLM that you are using.
+> **Disclaimer:** This article is an experimental implementation about applying LLMs to convert AWS Lambda functions into Azure Functions. It is not intended as a defined guide for the process and does not guarantee successful conversion. The outcome depends on the specific code you intend to convert and the LLM that you are using.
 
 What would it take to convert a Lambda Function into an Azure Function?
 
 There are a few things that we need to take into account with Lambda Functions:
 
-1. Lambda functions don't use bindings.
+1. Unlike Azure Functions, AWS Lambda functions don't use bindings.
 
 2. Input objects in the entrypoint are received in the entry handler as a json format object.
 
-3. As output bindings don't exist, all output in Lambdas are handled by using the AWS SDKs.
+3. As output bindings don't exist, all outputs in Lambdas are handled by using the AWS SDKs.
 
 So what do we need to do the conversion? Let's separate the process in the following steps:
 
 1. Converting the Lambda entrypoint to the Azure Function format.
 
-2. Converting any libraries using the AWS SDKs to use an interface instead that can connect either to AWS or Azure. Why? well if we are doing a migration, we may want to keep using the AWS services until the data or queues are fully migrated.
+2. Converting any libraries using the AWS SDKs to use an interface instead that can connect either to AWS or Azure. Why? Well, if we are doing a migration, we may want to keep using the AWS services until the data or queues are fully migrated.
 
-3. Finally, Azure Function configuration files, to be able to run the function, like host.json, local.settings.json, and function.json need to be generated. These files require some information that the lambda currently doesn't have, as it's defined from configuration, like if the input bindings are for an http input or a queue, so the information must be provided.
+3. Finally, Azure Function configuration files to be able to run the function, like host.json, local.settings.json, and function.json, need to be generated. These files require some information that the lambda currently doesn't have, as it's defined from configuration. Like if the input bindings are for an http input or a queue, so the information must be provided.
 
 In this article, we'll review the first step process, by using prompt engineering techniques. Let's start by looking at a Lambda.
 
 ## How does a Lambda look like?
 
-A basic Lambda Function in go looks like this:
+A basic Lambda Function in Go looks like this:
 
 ```go
 package main
@@ -59,13 +59,13 @@ func main() {
 }
 ```
 
-In this example you can see a simple hello world Lambda. It includes some interesting features like:
+This example is a simple hello world Lambda Function. It includes some interesting features like:
 
 - A package `github.com/aws/aws-lambda-go/lambda`
 - A main function starting the lambda by calling `lambda.Start(HandleRequest)`
 - A handler referenced in the main function with this signature: `HandleRequest(ctx context.Context, event *MyEvent) (*MyResponse, error)`
 
-An interesting thing on Lambda functions is that the handler can have different signatures, for example all of these signatures are valid:
+An interesting thing on Lambda Functions is that the handler can have different signatures. For example, all of these signatures are valid:
 
 ```go
 func ()
@@ -84,11 +84,11 @@ So we need to convert this entrypoint to an Azure Function Format.
 
 ## What should be the result?
 
-We have Go Lambdas and we want to convert them to Go Azure Functions. Azure Functions, as of today, doesn't have a language-specific handler fo Go, so, we need to use a custom handler to do the conversion instead.
+We have Go Lambdas and we want to convert them to Go Azure Functions. Azure Functions, as of today, doesn't have a language-specific handler for Go, so we need to use a custom handler to do the conversion instead.
 
-Custom handlers are lightweight web servers that receive events from the Functions host. The only thing we need to make it work, is to implement an HTTP server in Go.
+Custom handlers are lightweight web servers that receive events from the Functions host. The only thing we need to make it work is to implement an HTTP server in Go.
 
-Personally I like the Gin Web Framework so let's do an example using it. This would be, more or less, the code we would like to get after the conversion:
+Personally I like the Gin Web Framework, so let's do an example using it. This would be, more or less, the code we would like to get after the conversion:
 
 ```go
 package main
@@ -135,7 +135,7 @@ func main() {
 }
 ```
 
-We can see here we are keeping the original structs for the request and the response exactly the same, and that we still have a function handler but with a slightly different signature `func HandleRequest(ctx *gin.Context)` to be able to use the gin context instead. We are keeping the nil validation from the original but we need to parse the object ourselves. Finally the main function now is initializing a gin http server instead of a lambda. 
+We are keeping the original structs for the request and the response exactly the same, and that we still have a function handler but with a slightly different signature `func HandleRequest(ctx *gin.Context)` to be able to use the gin context instead. We are keeping the nil validation from the original but we need to parse the object ourselves. Finally the main function now is initializing a gin http server instead of a lambda. 
 
 It looks pretty good to me :)
 
@@ -143,7 +143,10 @@ So now how do we teach an LLM to do this conversion?
 
 ## The attempts
 
-You've probably have heard by now about Prompt Engineering, Prompt engineering is the process to write the best instructions possible to the LLMs so we are able to get the result we are looking for. It includes several techniques, and we are going to need some of these techniques to be able to do the conversion. You can learn more about these techniques [here](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/advanced-prompt-engineering?pivots=programming-language-chat-completions).
+You've probably have heard by now about Prompt Engineering, Prompt engineering is the process to write the best instructions possible to the LLMs so we are able to get the result we are looking for. It includes several techniques, and we are going to need some of these techniques to be able to do the conversion. You can learn more about these techniques in these links:
+
+- [Prompt engineering techniques](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/advanced-prompt-engineering?pivots=programming-language-chat-completions).
+- [Prompting guide](https://www.promptingguide.ai/techniques)
 
 There are a few techniques using prompt engineering that didn't work well for the case, as we got hallucinations and wrong code, but they can be good alternatives depending on the case. Let's just list them here.
 
@@ -155,11 +158,11 @@ So although it is a good approach, we can use CoT, for the prompts but we need t
 
 ### Few shots using an example selector
 
-This is a really nice technique that selects the examples using a vector database and embeddings to select the most relevant examples to do the conversion. I didn't had a big number of examples but I had enough to start testing it out. The result was unexpected, when I added just one example to the prompt I got a pretty good conversion, maybe with some issues with packages like not doing the required imports, and once even hallucinating about an azure function package that doesn't exist, but with the base idea. Strangely, when given more examples, instead of improving the model, it started returning that it wasn't able to do the conversion.
+This is a really nice technique that selects the examples using a vector database and embeddings to select the most relevant examples to do the conversion. I didn't have a big number of examples but I had enough to start testing it out. The result was unexpected, when I added just one example to the prompt I got a pretty good conversion, maybe with some issues with packages like not doing the required imports, and once even hallucinating about an azure function package that doesn't exist, but with the base idea. Strangely, when given more examples, instead of improving the model, it started returning that it wasn't able to do the conversion.
 
 Again we needed something better.
 
-### Fine tunning
+### Fine tuning
 
 So this is a really nice approach, not prompt engineering but instead re-training the model specifically for the task. The problem was that it requires a lot of examples of input/output pairs and I didn't had this amount of examples, also, it can be pretty expensive. So if you are trying something similar and after testing with all the Prompt Engineering options you aren't able to get the results you want, give it a try, but, be aware of the possible costs from training, deployment and queries that come with it.
 
@@ -167,26 +170,26 @@ This is a good option, but I wanted to find the best way to do it without having
 
 ## The solution
 
-To be able to do the conversion I went looking for examples of successful work with LLMs and code. Most of the documentation you find is about LLMs and text, and there's little about code, but I was able to find this article about [Code Generation](https://paperswithcode.com/task/code-generation). In the article we can see a list of papers on how to generate code, and they were being evaluated using different Datasets. I started checking the HumanEval Dataset, And found some interesting techniques, one of them called Parsel, was all about using pseudo-code to describe what the program needs to do and after asking the LLM to convert it into real code, That one sounded interesting but the one that caught my attention, was the [Language Agent Tree Search](https://paperswithcode.com/paper/language-agent-tree-search-unifies-reasoning) using GPT-4, it was the one that scored the best in the Dataset and with a 94.4% of passing rate sounded really promising.
+To be able to do the conversion I went looking for examples of successful work with LLMs and code. Most of the documentation you find is about LLMs and text, and there's little about code, but I was able to find this article about [Code Generation Papers](https://paperswithcode.com/task/code-generation). In the article we can see a list of papers on how to generate code, and they were being evaluated using different Datasets. I started checking the HumanEval Dataset, And found some interesting techniques, one of them called Parsel, was all about using pseudo-code to describe what the program needs to do and after asking the LLM to convert it into real code, That one sounded interesting but the one that caught my attention, was the [Language Agent Tree Search](https://paperswithcode.com/paper/language-agent-tree-search-unifies-reasoning) using GPT-4, it was the one that scored the best in the Dataset and with a 94.4% of passing rate sounded really promising.
 
-So what is "Language Agent Tree Search" about? [Here](https://andyz245.github.io/LanguageAgentTreeSearch/) you can find a nice explanation about it but we can summarize it as combining two Prompt Engineering techniques, Tree of thoughts and ReAct, in order to get the best results. 
+So what is "Language Agent Tree Search" about? In the article [Language Agent Tree Search](https://andyz245.github.io/LanguageAgentTreeSearch/), you can find a nice explanation about it but we can summarize it as combining two Prompt Engineering techniques, Tree of thoughts and ReAct, in order to get the best results. 
 
-Tree of Thoughts as stated [here](https://www.promptingguide.ai/techniques/tot) is *a framework that generalizes over chain-of-thought prompting and encourages exploration over thoughts that serve as intermediate step for general problem solving with language models*. The idea behind Tree of Thoughts is to search for a solution through a tree of partial solutions discarding the ones that don't show any future like is shown in the image.
+[Tree of Thoughts](https://www.promptingguide.ai/techniques/tot) is *a framework that generalizes over chain-of-thought prompting and encourages exploration over thoughts that serve as intermediate step for general problem solving with language models*. The idea behind Tree of Thoughts is to search for a solution through a tree of partial solutions discarding the ones that don't show any future like is shown in the image.
 
-![Tree of thoughts](./img/tree-of-thoughts.png)
-*Tree of thoughts, image source: https://www.promptingguide.ai/techniques/tot*
+![Tree of Thoughts Diagram](./img/tree-of-thoughts.drawio.png)
+*Tree of thoughts*
 
-ReAct on the other hand, as stated [here](https://www.promptingguide.ai/techniques/react) attempts to *reasoning traces and task-specific actions in an interleaved manner*. The idea is to generate reasoning traces based on the execution of the model and that way learn from its mistakes.
+[ReAct](https://www.promptingguide.ai/techniques/react) in the other hand, attempts to *do reasoning traces and task-specific actions in an interleaved manner*. The idea is to generate reasoning traces based on the execution of the model and that way learn from its mistakes.
 
 Combining both prompt engineering strategies we get something like this:
 
-![lats](./img/lats.drawio.png)
+![Language Agent Tree Search Diagram](./img/lats.drawio.png)
 
 *Language agent tree search*
 
-Having a tree of thoughts combined with ReAct, allows us to iterate over a problem, but giving the LLMs feedback about what it did wrong, and then, act again using the self-reflection as an input find a better solution.
+Having a tree of thoughts combined with ReAct, allows us to iterate over a problem, but giving the LLMs feedback about what it did wrong, and then, act again using the self-reflection as an input to find a better solution.
 
-So, I created an implementation for the lambda-azure converter based on the code from the lats implementation found [here](https://github.com/andyz245/LanguageAgentTreeSearch)
+So, I created an implementation for the lambda-azure converter based on the code from the lats implementation. You can find the code in the [LanguageAgentTreeSearch repo](https://github.com/andyz245/LanguageAgentTreeSearch).
 
 Let's see it in action.
 
@@ -316,7 +319,7 @@ func TestHandleRequest_EmptyBody(t *testing.T) {
 }
 ```
 
-Really nice!, the LLM is testing a success escenario a bad request and an empty input, these are going to be of help to check everything is working properly.
+Really nice! The LLM is testing a success scenario, a bad request and an empty input, these are going to be of help to check everything is working properly.
 
 So how can we know if the code works? and that the tests pass? well we need to build the code and check that we don't have any compile errors, or failed tests. In addition we can add our own tests if we have them available, I'm adding this one.
 
@@ -369,25 +372,25 @@ func TestHandleRequest(t *testing.T) {
 }
 ```
 
-Using go and some methods to execute commands I compiled the code and ran the tests programmatically, in addition I designed a score system where a successful build gives 2 points and each successful test gives 1 point, I divide everything over the max available points and based on this score I can define if the code is correct.
+Using Go and some methods to execute commands I compiled the code and ran the tests programmatically, in addition I designed a score system where a successful build gives 2 points and each successful test gives 1 point, I divide everything over the max available points and based on this score I can define if the code is correct.
 
 Here are the results:
 
 ```yaml
 IsPassing: false 
 Feedback: |
-	TestsPassed: ... <The code for the test I manually added>
-	TestsFailed: ... <The code for the auto-generated one>		
-	ErrorTrace: 
-		C:/Users/XXXXX/AppData/Local/Temp/go-lats/lats_test.go:44
-		Error:      	Not equal: 
-						expected: 400
-						actual  : 200
-		Test:       	TestHandleRequest_BadRequest
+    TestsPassed: ... <The code for the test I manually added>
+    TestsFailed: ... <The code for the auto-generated one>
+    ErrorTrace: 
+        C:/Users/XXXXX/AppData/Local/Temp/go-lats/lats_test.go:44
+        Error:          Not equal: 
+                        expected: 400
+                        actual  : 200
+        Test:           TestHandleRequest_BadRequest
 Score: 0.75
 ```
 
-We can see here that the test I gave him passed, but the test he came up with failed, because the function is not handling the case when the input is wrong. 
+The test I gave him passed, but the test he came up with failed, because the function is not handling the case when the input is wrong. 
 
 As we were not able to get a solution in the first attempt the next step is to create a tree of children solutions using self-reflection and then use the one that gives us the best score. But of course if one of this attempts is a solution we'll stop the iteration and return it as a solution.
 
@@ -508,6 +511,6 @@ This method still needs to be tested against real user code, and the prompts can
 
 Now after finishing the entrypoint transformation, we'll need to think about next steps, for step 2 we should be able to use a similar approach using different prompts, instead of converting the code to a Gin Web server we'll need to ask it to do a conversion that uses interface implementations instead of AWS ones, and for step 3, we could try to infer the information from the documentation, or give it to it ourselves, and with the information, ask it to create the required json files to run the Azure Function.
 
-If you want to check out the code you can find it [here](https://github.com/Azure-Samples/llm-lambda-azure-converter).
+If you want to check out the code you can find it in the [llm-lambda-azure-converter repo](https://github.com/Azure-Samples/llm-lambda-azure-converter).
 
-Hope you enjoyed this implementation approach, love to here your comments. Until the next one!
+Hope you enjoyed this implementation approach, love to hear your comments. Until the next one!
