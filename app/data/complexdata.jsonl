@@ -1,0 +1,2 @@
+{"id":"complex-conversion-1","projectPath":"../go-examples/","mainFile":"./examples/gin/complex-conversion-1/input/main.go","targetPath":"./examples/gin/complex-conversion-1/output/","testPaths":[]}
+{"id":"complex-conversion-2","projectPath":"../go-examples/","mainFile":"./examples/gin/complex-conversion-2/input/main.go","targetPath":"./examples/gin/complex-conversion-2/output/","testPaths":[]}

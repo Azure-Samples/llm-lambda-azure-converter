@@ -108,7 +108,11 @@ func (s *server) convertHandler(c *gin.Context) {
 	}
 
 	go func() {
-		resp, err := converter.Convert(context.Background(), request.Code, request.Tests, request.GenerateTests)
+		resp, err := converter.Convert(
+			context.Background(),
+			request.Code,
+			request.Tests,
+			models.WithGenerateTests(request.GenerateTests))
 		var response ConversionResponse
 		if err != nil {
 			errorMsg := fmt.Sprintf("there was an error converting the code: %s", err.Error())

@@ -194,7 +194,7 @@ func Test_converter_Convert(t *testing.T) {
 				v.AddConfigPath(".")
 				v.AddConfigPath("./..")
 				v.AddConfigPath("./../..")
-			
+
 				err := v.ReadInConfig()
 				if err != nil {
 					t.Errorf("error reading config file: %v", err)
@@ -221,7 +221,11 @@ func Test_converter_Convert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			converter := tt.getConverter(t)
-			got, err := converter.Convert(context.Background(), tt.args.code, tt.args.originalTests, tt.args.generateTests)
+			got, err := converter.Convert(
+				context.Background(),
+				tt.args.code,
+				tt.args.originalTests,
+				models.WithGenerateTests(tt.args.generateTests))
 			if (err != nil) != tt.wantErr {
 				t.Errorf("converter.Convert() error = %v, wantErr %v", err, tt.wantErr)
 				return

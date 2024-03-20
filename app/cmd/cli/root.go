@@ -11,7 +11,6 @@ import (
 
 var (
 	cfgFile     string
-	userLicense string
 
 	rootCmd = &cobra.Command{
 		Use:   "azfunc",
