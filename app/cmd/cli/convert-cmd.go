@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	promptsDir = "../../internal/lats/prompts"
+	promptsDir = "./internal/lats/prompts"
 )
 
 var (
@@ -70,22 +70,27 @@ var convertCmd = &cobra.Command{
 			tests = append(tests, test)
 		}
 
-		response, err := converter.Convert(context.Background(), code, tests, generateTests)
-
+		response, err := converter.Convert(
+			context.Background(),
+			code,
+			tests,
+			models.WithGenerateTests(generateTests),
+			models.WithCreateProject(true))
 		if err != nil {
 			return fmt.Errorf("there was an error converting the code: %s", err.Error())
 
 		}
 
 		if response.Found {
-			fmt.Printf("Found a solution in %d iterations\n", response.TotalIterations)
+			fmt.Printf("Found a solution in %d iterations and %d attempts\n", response.TotalIterations, response.TotalAttempts)
 		} else {
-			fmt.Printf("Couldn't find a solution after %d iterations\n", response.TotalIterations)
+			fmt.Printf("Couldn't find a solution after %d iterations and %d attempts\n", response.TotalIterations, response.TotalAttempts)
 		}
 		fmt.Printf("Total time: %s\n", response.TotalTime.String())
+		fmt.Printf("Total attempts: %d\n", response.TotalAttempts)
 		fmt.Printf("Showing code for node %s\n", response.SelectedNode)
 		fmt.Println("")
-		fmt.Println(*&response.Code)
+		fmt.Println(response.Code)
 
 		return nil
 	},

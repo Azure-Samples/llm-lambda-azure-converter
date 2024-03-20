@@ -1,0 +1,12 @@
+{"id":"basic-conversion-1","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-1/input/main.go","targetPath":"./examples/gin/basic-conversion-1/output/","testPaths":[]}
+{"id":"basic-conversion-2","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-2/input/main.go","targetPath":"./examples/gin/basic-conversion-2/output/","testPaths":[]}
+{"id":"basic-conversion-3","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-3/input/main.go","targetPath":"./examples/gin/basic-conversion-3/output/","testPaths":[]}
+{"id":"basic-conversion-4","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-4/input/main.go","targetPath":"./examples/gin/basic-conversion-4/output/","testPaths":[]}
+{"id":"basic-conversion-5","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-5/input/main.go","targetPath":"./examples/gin/basic-conversion-5/output/","testPaths":[]}
+{"id":"basic-conversion-6","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-6/input/main.go","targetPath":"./examples/gin/basic-conversion-6/output/","testPaths":[]}
+{"id":"basic-conversion-7","projectPath":"../go-examples/","mainFile":"./examples/gin/basic-conversion-7/input/main.go","targetPath":"./examples/gin/basic-conversion-7/output/","testPaths":[]}
+{"id":"event-conversion-1","projectPath":"../go-examples/","mainFile":"./examples/gin/event-conversion-1/input/main.go","targetPath":"./examples/gin/event-conversion-1/output/","testPaths":[]}
+{"id":"event-conversion-2","projectPath":"../go-examples/","mainFile":"./examples/gin/event-conversion-2/input/main.go","targetPath":"./examples/gin/event-conversion-2/output/","testPaths":[]}
+{"id":"event-conversion-3","projectPath":"../go-examples/","mainFile":"./examples/gin/event-conversion-3/input/main.go","targetPath":"./examples/gin/event-conversion-3/output/","testPaths":[]}
+{"id":"s3-conversion-1","projectPath":"../go-examples/","mainFile":"./examples/gin/s3-conversion-1/input/main.go","targetPath":"./examples/gin/s3-conversion-1/output/","testPaths":[]}
+{"id":"s3-conversion-2","projectPath":"../go-examples/","mainFile":"./examples/gin/s3-conversion-2/input/main.go","targetPath":"./examples/gin/s3-conversion-2/output/","testPaths":[]}
