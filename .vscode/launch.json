@@ -39,6 +39,19 @@
             ]
         },
         {
+            "name": "Run CLI evaluate",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "./app",
+            "program": "./app/cmd/cli/",
+            "args": [
+                "evaluate",
+                "--data-path",
+                "./data/evaldata.jsonl",
+            ]
+        },
+        {
             "name": "Attach to Java Functions",
             "type": "java",
             "request": "attach",

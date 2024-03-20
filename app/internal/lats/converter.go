@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -31,26 +32,34 @@ func NewConverter(generator models.Generator, executor models.Executor, config L
 	}
 }
 
-func buildResponse(node models.Node, startTime time.Time) *models.ConverterResponse {
+func buildResponse(node models.Node, startTime time.Time, attempts int) *models.ConverterResponse {
 	return &models.ConverterResponse{
 		Code:            node.Code,
 		Tests:           node.Tests,
 		TotalIterations: node.Iteration,
+		TotalAttempts:   attempts,
 		SelectedNode:    node.Id,
 		TotalTime:       time.Since(startTime),
 		Found:           node.Score == 1,
 	}
 }
 
-func (m *converter) Convert(ctx context.Context, code string, originalTests []string, generateTests bool) (*models.ConverterResponse, error) {
+func (m *converter) Convert(ctx context.Context, code string, originalTests []string, options ...models.ConverterOption) (*models.ConverterResponse, error) {
 	startTime := time.Now()
-	rootNode, err := m.generateNode(ctx, code, nil, originalTests, generateTests)
+
+	converterOptions := &models.ConverterOptions{}
+	for _, option := range options {
+		option(converterOptions)
+	}
+
+	rootNode, err := m.generateNode(ctx, code, nil, originalTests, *converterOptions)
 	if err != nil {
 		return nil, err
 	}
+	attempts := 1
 
 	if rootNode.Score == 1 {
-		return buildResponse(*rootNode, startTime), nil
+		return buildResponse(*rootNode, startTime, attempts), nil
 	}
 
 	currentIteration := 0
@@ -62,13 +71,14 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 		for len(currentNode.ChildNodes) < m.maxChildren {
 			m.logger.Debug().Msgf("Generating child node %d", len(currentNode.ChildNodes)+1)
 
-			childNode, err := m.generateNode(ctx, code, currentNode, originalTests, generateTests)
+			childNode, err := m.generateNode(ctx, code, currentNode, originalTests, *converterOptions)
 			if err != nil {
 				return nil, err
 			}
+			attempts++
 
 			if childNode.Score == 1 {
-				return buildResponse(*childNode, startTime), nil
+				return buildResponse(*childNode, startTime, attempts), nil
 			}
 
 			if childNode.Score >= bestNode.Score {
@@ -82,10 +92,10 @@ func (m *converter) Convert(ctx context.Context, code string, originalTests []st
 
 	m.logger.Debug().Msgf("Could not find a better solution after %d iterations", m.maxIterations)
 	m.logger.Debug().Msgf("Returning code with best score %f;\n%+v", bestNode.Score, bestNode.Code)
-	return buildResponse(*bestNode, startTime), nil
+	return buildResponse(*bestNode, startTime, attempts), nil
 }
 
-func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node, originalTests []string, generateTests bool) (*models.Node, error) {
+func (m *converter) generateNode(ctx context.Context, code string, parentNode *models.Node, originalTests []string, options models.ConverterOptions) (*models.Node, error) {
 	nodeIteration := 0
 	nodeId := "0"
 	if parentNode != nil {
@@ -106,17 +116,28 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 	m.logger.Debug().Msgf("Generated code:\n%s", *generatedCode)
 
 	tests := make([]string, 0)
-	tests = append(tests, originalTests...)
-	if generateTests {
-		generatedTests, err := m.generator.GenerateTests(ctx, code, *generatedCode)
-		if err != nil {
-			return nil, fmt.Errorf("there was an error generating tests on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+	if options.GenerateTests {
+		if parentNode == nil {
+			tests = append(tests, originalTests...)
+			generatedTests, err := m.generator.GenerateTests(ctx, code, *generatedCode)
+			if err != nil {
+				return nil, fmt.Errorf("there was an error generating tests on iteration %d, node %s: %v", nodeIteration, nodeId, err)
+			}
+			tests = append(tests, generatedTests...)
+			m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
+		} else {
+			tests = parentNode.Tests
 		}
-		m.logger.Debug().Msgf("Generated tests:\n%s", strings.Join(generatedTests, "\n\n"))
-		tests = append(tests, generatedTests...)
 	}
 
-	result, err := m.executor.Execute(*generatedCode, tests)
+	result, err := m.executor.Execute(
+		*generatedCode,
+		tests,
+		models.WithExProjectPath(options.ProjectPath),
+		models.WithExExTargetPath(options.TargetPath),
+		models.WithExFilename(strings.Split(path.Base(options.MainFile), ".")[0]),
+		models.WithExCreateProject(options.CreateProject))
+
 	if err != nil {
 		return nil, fmt.Errorf("there was an error running/testing code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 	}
@@ -140,7 +161,15 @@ func (m *converter) generateNode(ctx context.Context, code string, parentNode *m
 		if strings.Contains(strings.ToLower(*implementationIsGood), "yes") {
 			m.logger.Debug().Msgf("Running execution again without generated tests")
 			tests = originalTests
-			result, err = m.executor.Execute(*generatedCode, originalTests)
+
+			result, err = m.executor.Execute(
+				*generatedCode,
+				originalTests,
+				models.WithExProjectPath(options.ProjectPath),
+				models.WithExExTargetPath(options.TargetPath),
+				models.WithExFilename(strings.Split(path.Base(options.MainFile), ".")[0]),
+				models.WithExCreateProject(options.CreateProject))
+
 			if err != nil {
 				return nil, fmt.Errorf("there was an error running/testing code on iteration %d, node %s: %v", nodeIteration, nodeId, err)
 			}

@@ -9,8 +9,9 @@ import (
 
 func Test_goExecutor_Execute(t *testing.T) {
 	type args struct {
-		code  string
-		tests []string
+		code    string
+		tests   []string
+		options []models.ExecutorOption
 	}
 	tests := []struct {
 		name    string
@@ -50,10 +51,14 @@ func TestSalute(t *testing.T) {
 }
 ` + "```",
 				},
+				options: []models.ExecutorOption{
+					models.WithExCreateProject(true),
+					models.WithExFilename("salute"),
+				},
 			},
 			want: &models.ExecutionResult{
 				IsPassing: true,
-				Feedback:  "Tested passed:\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n}\n```\n\nTested failed:\n",
+				Feedback:  "Tests passed:\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, World!\", salute(\"World\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.Equal(t, \"Hello, Ana!\", salute(\"Ana\"))\n}\n```\n```go\npackage main\nfunc TestSalute(t *testing.T) {\n\tassert.NotEqual(t, \"Hello, Ana!\", salute(\"Ada\"))\n}\n```\n\nTests failed:\n",
 				Score:     1,
 			},
 			wantErr: false,
@@ -61,7 +66,7 @@ func TestSalute(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.e.Execute(tt.args.code, tt.args.tests)
+			got, err := tt.e.Execute(tt.args.code, tt.args.tests, tt.args.options...)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("goExecutor.Execute() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -75,7 +80,8 @@ func TestSalute(t *testing.T) {
 
 func Test_grabCompileErrs(t *testing.T) {
 	type args struct {
-		output string
+		output        string
+		targetPackage string
 	}
 	tests := []struct {
 		name string
@@ -94,17 +100,24 @@ func Test_grabCompileErrs(t *testing.T) {
 .\lats.go:15:16: too many return values
         have (bool, bool)
         want (bool)`,
+				targetPackage: "go-lats-35116-6739b2903daabf6d",
 			},
 			want: []string{
-				".\\lats.go:10:7: undefined: math\n",
-				".\\lats.go:11:18: too many return values\n        have (bool, bool)\n        want (bool)\n",
-				".\\lats.go:15:16: too many return values\n        have (bool, bool)\n        want (bool)\n",
+				`# go-lats-35116-6739b2903daabf6d
+.\lats.go:10:7: undefined: math
+.\lats.go:11:18: too many return values
+        have (bool, bool)
+        want (bool)
+.\lats.go:15:16: too many return values
+        have (bool, bool)
+        want (bool)
+`,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := grabCompileErrs(tt.args.output, "lats.go"); !reflect.DeepEqual(got, tt.want) {
+			if got := grabCompileErrs(tt.args.output, tt.args.targetPackage); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("grabCompileErrs() = %v, want %v", got, tt.want)
 			}
 		})
@@ -113,7 +126,8 @@ func Test_grabCompileErrs(t *testing.T) {
 
 func Test_grabTestErrors(t *testing.T) {
 	type args struct {
-		output string
+		output   string
+		filename string
 	}
 	tests := []struct {
 		name string
@@ -132,6 +146,7 @@ func Test_grabTestErrors(t *testing.T) {
 FAIL
 FAIL    go-lats-35116-6739b2903daabf6d  2.672s
 FAIL`,
+				filename: "lats_test.go",
 			},
 			want: []string{
 				"        lats_test.go:53: HasCloseElements() = false, want true\n",
@@ -141,7 +156,7 @@ FAIL`,
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := grabTestErrors(tt.args.output); !reflect.DeepEqual(got, tt.want) {
+			if got := grabTestErrors(tt.args.output, tt.args.filename); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("grabTestErrors() = %v, want %v", got, tt.want)
 			}
 		})
