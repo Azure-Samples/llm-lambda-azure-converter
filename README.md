@@ -1,6 +1,6 @@
 # AWS Lambda To Azure Function Converter
 
-The objective of this project is to create a cli app that is able to convert AWS Lambda Functions to Azure Functions, with the help of Azure Open AI.
+The objective of this project is to create a cli app that is able to convert AWS Lambda Functions to Azure Functions, with the help of Azure OpenAI.
 
 > **Disclaimer:** This repository is provided **as-is** and is not officially supported. It is an experimental implementation that explores the use of Large Language Models (LLMs) to convert AWS Lambda functions into Azure Functions. Please note that this implementation does not guarantee successful conversion and the outcome may vary depending on the specific code and LLM used. If you wish to experiment with the code, you are welcome to fork it.
 
